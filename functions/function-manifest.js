@@ -4,6 +4,35 @@
 // https://platform.openai.com/docs/guides/function-calling
 
 const tools = [
+  // {
+  //   type: "function",
+  //   function: {
+  //     name: "sendToFlex",
+  //     description:
+  //       "If user wants to speak with a human agent or if you don't understand the request after trying to clarify multiple times",
+  //     parameters: {
+  //       type: "object",
+  //       properties: {
+  //         language: {
+  //           type: "string",
+  //           enum: ["english", "french", "italian", "spanish"],
+  //           description:
+  //             "The types of languages the user coule want to converse in",
+  //         },
+  //       },
+  //       required: ["language"],
+  //     },
+  //     returns: {
+  //       type: "object",
+  //       properties: {
+  //         locale: {
+  //           type: "string",
+  //           description: "Flex id",
+  //         },
+  //       },
+  //     },
+  //   },
+  // },
   {
     type: "function",
     function: {

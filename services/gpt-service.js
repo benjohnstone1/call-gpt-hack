@@ -90,9 +90,8 @@ class GptService extends EventEmitter {
         let functionResponse = functionToCall(functionArgs);
 
         if (functionName === "checkLanguage") {
-          // functionResponse = "it" -> then pass the arg to tts-service.js
-          console.log("Locale is ", functionResponse); //correctly responded with "fr"
-          exports.locale = functionResponse.locale;
+          console.log("Language locale is", functionResponse);
+          this.emit("localeChanged", functionResponse);
         }
 
         // Step 4: send the info on the function call and function response to GPT

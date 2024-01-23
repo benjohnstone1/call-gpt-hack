@@ -66,9 +66,8 @@ app.ws("/connection", (ws, req) => {
 
   const streamService = new StreamService(ws);
 
-  const whichLanguage = "en-US"; // e..g fr, it, es
-  const transcriptionService = new TranscriptionService(whichLanguage); //should we pass in language settings here?
-  // const voiceId = "21m00Tcm4TlvDq8ikWAM";
+  const locale = "en"; // e.g. en, fr, it, es
+  const transcriptionService = new TranscriptionService(locale); //Need to dynamically update locale on call
   const ttsService = new TextToSpeechService({});
 
   let marks = [];
@@ -85,7 +84,7 @@ app.ws("/connection", (ws, req) => {
       );
       ttsService.generate({
         partialResponseIndex: null,
-        partialResponse: initialGreeting, // Specify initial greeting from userContext
+        partialResponse: initialGreeting,
       });
     } else if (msg.event === "media") {
       transcriptionService.send(msg.media.payload);
@@ -98,6 +97,12 @@ app.ws("/connection", (ws, req) => {
     } else if (msg.event === "stop") {
       console.log(`Twilio -> Media stream ${streamSid} ended.`.underline.red);
     }
+  });
+
+  // Update transcription service locale
+  gptService.on("localeChanged", async (response) => {
+    let locale = JSON.parse(response).locale;
+    transcriptionService.updateLocale(locale);
   });
 
   transcriptionService.on("utterance", async (text) => {

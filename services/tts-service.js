@@ -5,7 +5,7 @@ class TextToSpeechService extends EventEmitter {
   constructor(config) {
     super();
     this.config = config;
-    this.config.voiceId ||= process.env.VOICE_ID; //can this be set dynamically based on whether english or french?
+    this.config.voiceId ||= process.env.VOICE_ID;
     this.nextExpectedIndex = 0;
     this.speechBuffer = {};
   }

@@ -1,17 +1,17 @@
 function checkLanguage(functionArgs) {
-  const model = functionArgs.model;
+  const language = functionArgs.language;
   console.log("GPT -> called checkLanguage function");
 
-  if (model?.toLowerCase().includes("english")) {
-    return JSON.stringify({ locale: "en-US" });
-  } else if (model?.toLowerCase().includes("french")) {
+  if (language?.toLowerCase().includes("english")) {
+    return JSON.stringify({ locale: "en" });
+  } else if (language?.toLowerCase().includes("french")) {
     return JSON.stringify({ locale: "fr" });
-  } else if (model?.toLowerCase().includes("spanish")) {
+  } else if (language?.toLowerCase().includes("spanish")) {
     return JSON.stringify({ locale: "es" });
-  } else if (model?.toLowerCase().includes("italian")) {
+  } else if (language?.toLowerCase().includes("italian")) {
     return JSON.stringify({ locale: "it" });
   } else {
-    return JSON.stringify({ locale: "en-US" });
+    return JSON.stringify({ locale: "en" });
   }
 }
 

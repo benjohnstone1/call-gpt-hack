@@ -2,11 +2,8 @@ const { Deepgram } = require("@deepgram/sdk");
 const EventEmitter = require("events");
 const colors = require("colors");
 
-// determine if transcription-service can tell what language is used and respond accordingly?
-// https://deepgram.com/changelog/introducing-language-detection
-
 class TranscriptionService extends EventEmitter {
-  constructor(whichLanguage) {
+  constructor(locale) {
     super();
     const deepgram = new Deepgram(process.env.DEEPGRAM_API_KEY);
     this.deepgramLive = deepgram.transcription.live({
@@ -17,8 +14,9 @@ class TranscriptionService extends EventEmitter {
       interim_results: true,
       endpointing: 200,
       utterance_end_ms: 1000,
-      language: whichLanguage, //can this be set dynamically? //passing in via constructor, how does GPT know to update like we do with
+      language: locale, // if we don't specify locale Deepgram has a hard time transcribing text
       // detect_language: true, --looks to be pre-recorded only not streaming
+      // https://deepgram.com/changelog/introducing-language-detection
     });
 
     this.finalResult = "";
@@ -91,6 +89,10 @@ class TranscriptionService extends EventEmitter {
     });
   }
 
+  updateLocale(locale) {
+    console.log("STT -> Deepgram - language locale updated", locale);
+    this.deepgramLive.configure({ language: locale }); // this does not work as expected
+  }
   /**
    * Send the payload to Deepgram
    * @param {String} payload A base64 MULAW/8000 audio stream
