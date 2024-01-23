@@ -1,8 +1,9 @@
 require("dotenv").config();
 const express = require("express");
-const ExpressWs = require("express-ws");
-const colors = require('colors');
+const bodyParser = require("body-parser"); //added
 
+const ExpressWs = require("express-ws");
+const colors = require("colors");
 
 const { GptService } = require("./services/gpt-service");
 const { StreamService } = require("./services/stream-service");
@@ -11,6 +12,28 @@ const { TextToSpeechService } = require("./services/tts-service");
 
 const app = express();
 ExpressWs(app);
+
+const cors = require("cors");
+const corsOptions = {
+  origin: "*",
+  credentials: true, //access-control-allow-credentials:true
+  optionSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+
+app.use(bodyParser.json());
+app.use(
+  bodyParser.urlencoded({
+    extended: true,
+  })
+);
+
+// Express Route
+const hackathonRoute = require("./routes/hackathon.route");
+
+//Routes
+app.use("/hackathon", hackathonRoute.router);
 
 const PORT = process.env.PORT || 3000;
 
@@ -31,13 +54,25 @@ app.ws("/connection", (ws, req) => {
   // Filled in from start message
   let streamSid;
 
-  const gptService = new GptService();
+  const systemContext =
+    hackathonRoute.userContext?.systemContext ??
+    "You are an outbound sales representative selling Apple Airpods. You speak english and french. You have a youthful and cheery personality. Keep your responses as brief as possible but make every attempt to keep the caller on the phone without being rude. Don't ask more than 1 question at a time. Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous. Speak out all prices to include the currency. Please help them decide between the airpods, airpods pro and airpods max by asking questions like 'Do you prefer headphones that go in your ear or over the ear?'. If they are trying to choose between the airpods and airpods pro try asking them if they need noise canceling. Once you know which model they would like ask them how many they would like to purchase and try to get them to place an order. You must add a '•' symbol every 5 to 10 words at natural pauses where your response can be split for text to speech.";
+
+  const initialGreeting =
+    hackathonRoute.userContext?.greeting ??
+    "Hello! I understand you're looking for a pair of AirPods, is that correct?";
+
+  const gptService = new GptService(systemContext, initialGreeting);
+
   const streamService = new StreamService(ws);
-  const transcriptionService = new TranscriptionService();
+
+  const whichLanguage = "en-US"; // e..g fr, it, es
+  const transcriptionService = new TranscriptionService(whichLanguage); //should we pass in language settings here?
+  // const voiceId = "21m00Tcm4TlvDq8ikWAM";
   const ttsService = new TextToSpeechService({});
-  
-  let marks = []
-  let interactionCount = 0
+
+  let marks = [];
+  let interactionCount = 0;
 
   // Incoming from MediaStream
   ws.on("message", function message(data) {
@@ -45,23 +80,30 @@ app.ws("/connection", (ws, req) => {
     if (msg.event === "start") {
       streamSid = msg.start.streamSid;
       streamService.setStreamSid(streamSid);
-      console.log(`Twilio -> Starting Media Stream for ${streamSid}`.underline.red);
-      ttsService.generate({partialResponseIndex: null, partialResponse: "Hello! I understand you're looking for a pair of AirPods, is that correct?"}, 1);
+      console.log(
+        `Twilio -> Starting Media Stream for ${streamSid}`.underline.red
+      );
+      ttsService.generate({
+        partialResponseIndex: null,
+        partialResponse: initialGreeting, // Specify initial greeting from userContext
+      });
     } else if (msg.event === "media") {
       transcriptionService.send(msg.media.payload);
     } else if (msg.event === "mark") {
       const label = msg.mark.name;
-      console.log(`Twilio -> Audio completed mark (${msg.sequenceNumber}): ${label}`.red)
-      marks = marks.filter(m => m !== msg.mark.name)
+      console.log(
+        `Twilio -> Audio completed mark (${msg.sequenceNumber}): ${label}`.red
+      );
+      marks = marks.filter((m) => m !== msg.mark.name);
     } else if (msg.event === "stop") {
-      console.log(`Twilio -> Media stream ${streamSid} ended.`.underline.red)
+      console.log(`Twilio -> Media stream ${streamSid} ended.`.underline.red);
     }
   });
 
   transcriptionService.on("utterance", async (text) => {
     // This is a bit of a hack to filter out empty utterances
-    if(marks.length > 0 && text?.length > 5) {
-      console.log("Twilio -> Interruption, Clearing stream".red)
+    if (marks.length > 0 && text?.length > 5) {
+      console.log("Twilio -> Interruption, Clearing stream".red);
       ws.send(
         JSON.stringify({
           streamSid,
@@ -72,14 +114,18 @@ app.ws("/connection", (ws, req) => {
   });
 
   transcriptionService.on("transcription", async (text) => {
-    if (!text) { return; }
+    if (!text) {
+      return;
+    }
     console.log(`Interaction ${interactionCount} – STT -> GPT: ${text}`.yellow);
     gptService.completion(text, interactionCount);
     interactionCount += 1;
   });
-  
-  gptService.on('gptreply', async (gptReply, icount) => {
-    console.log(`Interaction ${icount}: GPT -> TTS: ${gptReply.partialResponse}`.green )
+
+  gptService.on("gptreply", async (gptReply, icount) => {
+    console.log(
+      `Interaction ${icount}: GPT -> TTS: ${gptReply.partialResponse}`.green
+    );
     ttsService.generate(gptReply, icount);
   });
 
@@ -89,9 +135,9 @@ app.ws("/connection", (ws, req) => {
     streamService.buffer(responseIndex, audio);
   });
 
-  streamService.on('audiosent', (markLabel) => {
+  streamService.on("audiosent", (markLabel) => {
     marks.push(markLabel);
-  })
+  });
 });
 
 app.listen(PORT);

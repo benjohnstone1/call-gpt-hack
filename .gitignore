@@ -1,6 +1,10 @@
 # Created by https://www.toptal.com/developers/gitignore/api/node
 # Edit at https://www.toptal.com/developers/gitignore?templates=node
 
+# Ignore node modules in both server and client
+server/node_modules
+client/node_modules
+
 ### Node ###
 # Logs
 logs
@@ -77,6 +81,7 @@ web_modules/
 .yarn-integrity
 
 # dotenv environment variable files
+server/.env
 .env
 .env.development.local
 .env.test.local
