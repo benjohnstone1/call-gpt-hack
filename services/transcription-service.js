@@ -4,12 +4,16 @@ const colors = require("colors");
 
 class TranscriptionService extends EventEmitter {
   constructor(locale) {
+    console.log(
+      "STT -> New Deepgram connection created for locale".yellow,
+      locale.yellow
+    );
     super();
     const deepgram = new Deepgram(process.env.DEEPGRAM_API_KEY);
     this.deepgramLive = deepgram.transcription.live({
       encoding: "mulaw",
       sample_rate: "8000",
-      model: "nova-2",
+      model: "nova-2", //nova-2  https://deepgram.com/openai-whisper
       punctuate: true,
       interim_results: true,
       endpointing: 200,
@@ -31,20 +35,23 @@ class TranscriptionService extends EventEmitter {
         if (alternatives) {
           text = alternatives[0]?.transcript;
         }
+        console.log("transcription received is ".yellow, transcription.yellow);
 
         // if we receive an UtteranceEnd and speech_final has not already happened then we should consider this the end of of the human speech and emit the transcription
         if (transcription.type === "UtteranceEnd") {
           if (!this.speechFinal) {
             console.log(
               `UtteranceEnd received before speechFinal, emit the text collected so far: ${this.finalResult}`
-                .yellow
+                .yellow,
+              locale.yellow
             );
             this.emit("transcription", this.finalResult);
             return;
           } else {
             console.log(
               "STT -> Speech was already final when UtteranceEnd recevied"
-                .yellow
+                .yellow,
+              locale.yellow
             );
             return;
           }
@@ -54,6 +61,8 @@ class TranscriptionService extends EventEmitter {
         // if is_final that means that this chunk of the transcription is accurate and we need to add it to the finalResult
         if (transcription.is_final === true && text.trim().length > 0) {
           this.finalResult += ` ${text}`;
+          console.log(text.yellow, locale.yellow);
+
           // if speech_final and is_final that means this text is accurate and it's a natural pause in the speakers speech. We need to send this to the assistant for processing
           if (transcription.speech_final === true) {
             this.speechFinal = true; // this will prevent a utterance end which shows up after speechFinal from sending another response
@@ -85,14 +94,17 @@ class TranscriptionService extends EventEmitter {
     });
 
     this.deepgramLive.addListener("close", () => {
-      console.log("STT -> Deepgram connection closed".yellow);
+      console.log(
+        "STT -> Deepgram connection closed for locale".yellow,
+        locale.yellow
+      );
     });
   }
 
-  updateLocale(locale) {
-    console.log("STT -> Deepgram - language locale updated", locale);
-    this.deepgramLive.configure({ language: locale }); // this does not work as expected
+  closeConnection() {
+    this.deepgramLive.finish();
   }
+
   /**
    * Send the payload to Deepgram
    * @param {String} payload A base64 MULAW/8000 audio stream
