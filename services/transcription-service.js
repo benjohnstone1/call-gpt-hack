@@ -13,14 +13,12 @@ class TranscriptionService extends EventEmitter {
     this.deepgramLive = deepgram.transcription.live({
       encoding: "mulaw",
       sample_rate: "8000",
-      model: "nova-2", //nova-2  https://deepgram.com/openai-whisper
+      model: "nova-2",
       punctuate: true,
       interim_results: true,
       endpointing: 200,
       utterance_end_ms: 1000,
-      language: locale, // if we don't specify locale Deepgram has a hard time transcribing text
-      // detect_language: true, --looks to be pre-recorded only not streaming
-      // https://deepgram.com/changelog/introducing-language-detection
+      language: locale,
     });
 
     this.finalResult = "";
@@ -35,7 +33,6 @@ class TranscriptionService extends EventEmitter {
         if (alternatives) {
           text = alternatives[0]?.transcript;
         }
-        console.log("transcription received is ".yellow, transcription.yellow);
 
         // if we receive an UtteranceEnd and speech_final has not already happened then we should consider this the end of of the human speech and emit the transcription
         if (transcription.type === "UtteranceEnd") {
@@ -61,8 +58,6 @@ class TranscriptionService extends EventEmitter {
         // if is_final that means that this chunk of the transcription is accurate and we need to add it to the finalResult
         if (transcription.is_final === true && text.trim().length > 0) {
           this.finalResult += ` ${text}`;
-          console.log(text.yellow, locale.yellow);
-
           // if speech_final and is_final that means this text is accurate and it's a natural pause in the speakers speech. We need to send this to the assistant for processing
           if (transcription.speech_final === true) {
             this.speechFinal = true; // this will prevent a utterance end which shows up after speechFinal from sending another response

@@ -90,7 +90,7 @@ class GptService extends EventEmitter {
         let functionResponse = functionToCall(functionArgs);
 
         if (functionName === "checkLanguage") {
-          console.log("Language locale is", functionResponse);
+          console.log("Language locale is".green, functionResponse.green);
           this.emit("localeChanged", functionResponse);
         }
 
