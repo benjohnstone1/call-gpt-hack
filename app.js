@@ -9,6 +9,11 @@ const { GptService } = require("./services/gpt-service");
 const { StreamService } = require("./services/stream-service");
 const { TranscriptionService } = require("./services/transcription-service");
 const { TextToSpeechService } = require("./services/tts-service");
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = require('twilio')(accountSid, authToken);
+const twilioSyncServiceSid = process.env.TRANSCRIPT_SYNC_SERVICE_SID;
+
 
 const app = express();
 ExpressWs(app);
@@ -38,6 +43,7 @@ app.use("/hackathon", hackathonRoute.router);
 const PORT = process.env.PORT || 3000;
 
 app.post("/incoming", (req, res) => {
+  global.callSID = req.body.CallSid;
   res.status(200);
   res.type("text/xml");
   res.end(`
@@ -53,6 +59,7 @@ var locale;
 var transcriptionService;
 
 app.ws("/connection", (ws, req) => {
+  console.log("received incoming")
   ws.on("error", console.error);
   // Filled in from start message
   let streamSid;
@@ -119,7 +126,9 @@ app.ws("/connection", (ws, req) => {
 
   function transcriptionEventListener(transcriptionService) {
     transcriptionService.on("transcription", async (text) => {
-      console.log("text received from transcription is".red, text.red);
+      console.log("text received from transcription is".red, text.red); //this is what the human says
+      writeTranscriptToTwilio(text, "customer");
+
       if (!text) {
         return;
       }
@@ -146,6 +155,74 @@ app.ws("/connection", (ws, req) => {
   }
   transcriptionEventListener(transcriptionService);
 
+
+  function writeTranscriptToTwilio (transcript, speaker) {
+    console.log("Incoming event to store document");
+    if (!callSID || !transcript) {
+      const error = "Missing CallSid or transcript data";
+      response.setBody({ message: error });
+      response.setStatusCode(400);
+    }
+
+    const listUniqueName = "Transcript-" + callSID;  
+    console.log("Using Sync service with SID", twilioSyncServiceSid);
+    console.log("List Unique ID", listUniqueName);
+    let listSid = undefined;
+
+    try {
+      // Check if list exists and update
+      client.sync.v1
+        .services(twilioSyncServiceSid)
+        .syncLists(listUniqueName)
+        .fetch()
+        .then((list) => {
+          console.log("List exists, SID", list.sid);
+          listSid = list.sid;
+          needToCreate = false;
+        })
+        .catch(async (error) => {
+          // Need to create document
+          if (error.code && error.code == 20404) {
+            console.log("List doesn't exist, creating");
+            await client.sync.v1
+              .services(twilioSyncServiceSid)
+              .syncLists.create({ uniqueName: listUniqueName })
+              .then((list) => {
+                console.log("Created sync list with SID", list.sid);
+                listSid = list.sid;
+              })
+              .catch((error) => {
+                console.error(
+                  "Oh shoot. Something went really wrong creating the list:",
+                  error.message
+                );
+              });
+          } else {
+            console.error("Oh shoot. Error fetching list");
+            console.error(error);
+          }
+        })
+        .then(() => {
+          // We have a listSid at this point - Add items to list
+          client.sync.v1
+            .services(twilioSyncServiceSid)
+            .syncLists(listSid)
+            .syncListItems.create({data: {speaker, transcript}})
+            .then((item) => {
+              console.log(
+                `Items inserted to list ${item.listSid} at index ${item.index}`
+              );
+            })
+            .catch((error) => {
+              console.error("Error insert items to list", error.message);
+            });
+        });
+    } catch (err) {
+      console.log("Oh shoot. Something went really wrong, check logs", err);
+    }
+
+  }
+
   gptService.on("gptreply", async (gptReply, icount) => {
     console.log(
       `Interaction ${icount}: GPT -> TTS: ${gptReply.partialResponse}`.green
@@ -154,7 +231,8 @@ app.ws("/connection", (ws, req) => {
   });
 
   ttsService.on("speech", (responseIndex, audio, label, icount) => {
-    console.log(`Interaction ${icount}: TTS -> TWILIO: ${label}`.blue);
+    console.log(`Interaction ${icount}: TTS -> TWILIO: ${label}`.blue); //This is what the virtual agent says
+    writeTranscriptToTwilio(label, "agent");
 
     streamService.buffer(responseIndex, audio);
   });
