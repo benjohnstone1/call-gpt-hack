@@ -1,14 +1,9 @@
 const config = require("../config/config.js");
-// const accountSid = config.accountSid; //update?
-// const authToken = config.authToken;
-
-accountSid = "ACc9b898fceaa53de1a081e4e35eff897b";
-authToken = "bc81aa0f3622405be4eb434898273d2e";
-twilioSyncServiceSid = "IS8c257f1890e9143ac48356e1697596c9";
-
+const accountSid = config.accountSid;
+const authToken = config.authToken;
 const client = require("twilio")(accountSid, authToken);
 const OpenAI = require("openai");
-// const twilioSyncServiceSid = process.env.TRANSCRIPT_SYNC_SERVICE_SID;
+const twilioSyncServiceSid = process.env.TRANSCRIPT_SYNC_SERVICE_SID;
 const mapSid = process.env.CALLSUMMARY_MAP_SID;
 
 function sendToFlex(functionArgs) {

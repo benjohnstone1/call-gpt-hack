@@ -2,23 +2,6 @@ const config = require("../config/config.js");
 const router = config.router;
 const client = config.client;
 const axios = require("axios");
-// const OpenAI = require("openai");
-
-// const openai = new OpenAI({
-//   apiKey: config.apiKeyOpenAI,
-// });
-
-// Client requests ask gpt prompt
-// router.get("/ask-gpt/:prompt", async (req, res, next) => {
-//   //   let response = await askGPT(req.params.prompt);
-//   try {
-//     let response = await askGPT(req.params.prompt);
-//     console.log(response);
-//     return res.status(200).send(response.message.content);
-//   } catch (e) {
-//     console.log(e);
-//   }
-// });
 
 let userContext = {};
 
