@@ -24,11 +24,16 @@ class GptService extends EventEmitter {
     this.availableFunctions = {};
     this.functionContext.forEach((tool) => {
       var functionName = tool.function.name;
-      // Update this to use webhooks
-      this.availableFunctions[
-        functionName
-      ] = require(`../functions/${functionName}`);
+      // Update this to take webhooks instead - case statement if/else
+      try {
+        this.availableFunctions[
+          functionName
+        ] = require(`../functions/${functionName}`);
+      } catch (e) {
+        console.log(e);
+      }
     });
+    console.log(this.availableFunctions);
   }
 
   async completion(text, interactionCount, role = "user", name = "user") {

@@ -155,5 +155,4 @@ const tools = [
   },
 ];
 
-// default to take a webhook with a response back
 module.exports = tools;
