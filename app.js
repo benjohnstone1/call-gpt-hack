@@ -14,7 +14,6 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = require('twilio')(accountSid, authToken);
 const twilioSyncServiceSid = process.env.TRANSCRIPT_SYNC_SERVICE_SID;
 
-
 const app = express();
 ExpressWs(app);
 
@@ -40,6 +39,12 @@ const hackathonRoute = require("./routes/hackathon.route");
 //Routes
 app.use("/hackathon", hackathonRoute.router);
 
+app.get("/basicWebhook",function(request, response){
+  console.log("Test Webhook Triggered with URL: ", request.url);
+  response.writeHead(200, {"Content-Type": "application/json"});
+});
+
+
 const PORT = process.env.PORT || 3000;
 
 app.post("/incoming", (req, res) => {
@@ -59,7 +64,6 @@ var locale;
 var transcriptionService;
 
 app.ws("/connection", (ws, req) => {
-  console.log("received incoming")
   ws.on("error", console.error);
   // Filled in from start message
   let streamSid;

@@ -22,6 +22,34 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "callBack",
+      description:
+        "If user wants to get a call back, trigger this function and call the user back in a few seconds. Respond by telling the caller if the callback was scuccessful then ask if there's anything else we can help with.",
+      parameters: {
+        type: "object",
+        properties: {
+          seconds: {
+            type: "integer",
+            description:
+              "An integer containing the number of seconds for when the user wants a call back.",
+          },
+        },
+        required: ["seconds"], //need to get a value before calling it
+      },
+      returns: {
+        type: "object",
+        properties: {
+          status: {
+            type: "string",
+            description: "A string that says whether the callback was successful or not.",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "checkLanguage",
       description:
         "Check the language used in the conversation to know how to reply to the user, the user may choose to switch languages during the conversation",
@@ -32,7 +60,7 @@ const tools = [
             type: "string",
             enum: ["english", "french", "italian", "spanish"],
             description:
-              "The types of languages the user coule want to converse in",
+              "The types of languages the user could want to converse in",
           },
         },
         required: ["language"], //need to get a value before calling it
@@ -93,8 +121,13 @@ const tools = [
             description:
               "The model of airpods, either the airpods, airpods pro or airpods max",
           },
+          webhookURL: {
+            type: "string",
+            description:
+              "http://kychan.ngrok.io/basicWebhook",
+          },
         },
-        required: ["model"],
+        required: ["model", "webhookURL"],
       },
       returns: {
         type: "object",

@@ -10,7 +10,7 @@ function sendToFlex(functionArgs) {
     console.log("GPT -> called sendToFlex function");
     summarizeCall();
     client.calls(callSID)
-        .update({twiml: '<Response><Stop><Stream/></Stop><Enqueue workflowSid="WW2e4131c9a391b7f8bfdcdbe9eaff6856" /></Response>'})
+        .update({twiml: '<Response><Pause length="2"/><Say>Connecting you to an agent</Say><Enqueue workflowSid="WW2e4131c9a391b7f8bfdcdbe9eaff6856" /><Stop><Stream/></Stop></Response>'})
         .then(call => console.log(call.to));
     return JSON.stringify({});
 
