@@ -22,6 +22,26 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "setName",
+      description:
+        "Before placing an order, you must get the user's first and last name if you don't already know the user's name",
+      parameters: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description:
+              "The user's first and last name",
+          },
+        },
+      },
+      returns: {
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "callBack",
       description:
         "If user wants to get a call back, trigger this function and call the user back in a few seconds. Respond by telling the caller if the callback was scuccessful then ask if there's anything else we can help with.",

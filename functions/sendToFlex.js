@@ -4,10 +4,32 @@ const client = require('twilio')(accountSid, authToken);
 const OpenAI = require('openai');
 const twilioSyncServiceSid = process.env.TRANSCRIPT_SYNC_SERVICE_SID;
 const mapSid = process.env.CALLSUMMARY_MAP_SID;
+const fetch = require('node-fetch');
+const { Analytics } = require('@segment/analytics-node')
+const analytics = new Analytics({ writeKey: process.env.SEGMENT_API_KEY })
 
 
 function sendToFlex(functionArgs) {
     console.log("GPT -> called sendToFlex function");
+    // Set properties for segment function
+    let properties = { source: 'Voice AI IVR' }
+    let numParams = Object.keys(functionArgs).length;
+    for (let i=0; i<numParams; i++){
+      let key = Object.keys(functionArgs)[i];
+      let value = functionArgs[key];
+      properties[key] = value;
+      console.log(properties)
+    }
+
+
+    // Send Track event to Segment
+    analytics.track({
+      userId: callerID,
+      event: arguments.callee.name,
+      properties:
+        properties
+    });
+ 
     summarizeCall();
     client.calls(callSID)
         .update({twiml: '<Response><Pause length="2"/><Say>Connecting you to an agent</Say><Enqueue workflowSid="WW2e4131c9a391b7f8bfdcdbe9eaff6856" /><Stop><Stream/></Stop></Response>'})
@@ -114,6 +136,5 @@ function saveSummary(callSummary) {
       }
 
 }
-
 
 module.exports = sendToFlex;

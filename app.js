@@ -5,6 +5,10 @@ const bodyParser = require("body-parser");
 const ExpressWs = require("express-ws");
 const colors = require("colors");
 
+
+
+const { Analytics } = require('@segment/analytics-node')
+const analytics = new Analytics({ writeKey: process.env.SEGMENT_API_KEY })
 const { GptService } = require("./services/gpt-service");
 const { StreamService } = require("./services/stream-service");
 const { TranscriptionService } = require("./services/transcription-service");
@@ -48,7 +52,19 @@ app.get("/basicWebhook",function(request, response){
 const PORT = process.env.PORT || 3000;
 
 app.post("/incoming", (req, res) => {
+  //set call SID as global variable
   global.callSID = req.body.CallSid;
+  global.callerID = req.body.Caller;
+  
+  //Trigger Segment identity
+  analytics.identify({
+    userId: callerID,
+    traits: {
+      phone: callerID
+    }
+  });
+
+  //Start media stream to app's Chat GPT service
   res.status(200);
   res.type("text/xml");
   res.end(`

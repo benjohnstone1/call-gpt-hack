@@ -1,7 +1,31 @@
 const fetch = require('node-fetch');
+const { Analytics } = require('@segment/analytics-node')
+const analytics = new Analytics({ writeKey: process.env.SEGMENT_API_KEY })
 
 function checkPrice(functionArgs) {
   console.log("GPT -> called checkPrice function");
+  console.log("function trigger is named: ", arguments.callee.name);
+  
+  // Set properties for segment function
+  let properties = { source: 'Voice AI IVR' }
+  let numParams = Object.keys(functionArgs).length;
+  for (let i=0; i<numParams; i++){
+    let key = Object.keys(functionArgs)[i];
+    let value = functionArgs[key];
+    properties[key] = value;
+    console.log(properties)
+  }
+
+
+  // Send Track event to Segment
+  analytics.track({
+    userId: callerID,
+    event: arguments.callee.name,
+    properties:
+      properties
+  });
+  
+  // Trigger Webhook
   if (functionArgs.webhookURL){
     return triggerWebhook(functionArgs);
   } else {
@@ -15,7 +39,6 @@ function checkPrice(functionArgs) {
 
   }
 }
-
 
 function triggerWebhook(functionArgs) {
   let webhookURL = functionArgs.webhookURL;
