@@ -26,16 +26,7 @@ class GptService extends EventEmitter {
     this.functionContext.forEach((tool) => {
       var functionName = tool.function.name;
       var webhookURL = tool.function.webhookURL;
-      console.log(webhookURL);
-      // Update this to take webhooks instead
-      try {
-        this.availableFunctions[functionName] = webhookURL;
-        // this.availableFunctions[
-        //   functionName
-        // ] = require(`../functions/${functionName}`);
-      } catch (e) {
-        console.log(e);
-      }
+      this.availableFunctions[functionName] = webhookURL;
     });
     console.log(this.availableFunctions);
   }
@@ -100,16 +91,13 @@ class GptService extends EventEmitter {
 
         let webhook_url = this.availableFunctions[functionName];
         console.log(webhook_url);
-        // "https://hackathon-open-ai-7695.twil.io/" + functionName; //need to define webhook_url based on function name from tools
-        console.log(`function args are `, JSON.stringify(functionArgs)); // example checkPrice is {"model":"pro"}
 
         const functionWebhook =
           await functionsWebhookHandler.makeWebhookRequest(
-            webhook_url, //get this from tools - update
+            webhook_url,
             "POST",
             functionArgs
           );
-        // console.log(functionToCall);
         let functionResponse = JSON.stringify(functionWebhook); // {price: 249}
         console.log(functionResponse);
 

@@ -1,6 +1,5 @@
 const config = require("../config/config.js");
 const router = config.router;
-const client = config.client;
 
 let userContext = {};
 
