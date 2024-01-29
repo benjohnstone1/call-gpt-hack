@@ -1,19 +1,11 @@
 const EventEmitter = require("events");
 const colors = require("colors");
 const OpenAI = require("openai");
-const tools = require("../functions/function-manifest");
-
-// Import all functions included in function manifest
-// Note: the function name and file name must be the same
-const availableFunctions = {};
-tools.forEach((tool) => {
-  functionName = tool.function.name;
-  availableFunctions[functionName] = require(`../functions/${functionName}`);
-});
 
 class GptService extends EventEmitter {
-  constructor(systemContext, initialGreeting) {
+  constructor(systemContext, initialGreeting, functionContext) {
     super();
+    this.functionContext = functionContext;
     this.openai = new OpenAI();
     (this.userContext = [
       {
@@ -26,6 +18,22 @@ class GptService extends EventEmitter {
       },
     ]),
       (this.partialResponseIndex = 0);
+
+    // Import all functions included in function manifest
+    // Note: the function name and file name must be the same
+    this.availableFunctions = {};
+    this.functionContext.forEach((tool) => {
+      var functionName = tool.function.name;
+      // Update this to take webhooks instead - case statement if/else
+      try {
+        this.availableFunctions[
+          functionName
+        ] = require(`../functions/${functionName}`);
+      } catch (e) {
+        console.log(e);
+      }
+    });
+    console.log(this.availableFunctions);
   }
 
   async completion(text, interactionCount, role = "user", name = "user") {
@@ -40,7 +48,7 @@ class GptService extends EventEmitter {
       // model: "gpt-4-1106-preview",
       model: "gpt-4",
       messages: this.userContext,
-      tools: tools, //this is where we pass in the functions -> we will need to generate this from our input
+      tools: this.functionContext, //this.functionContext, // from tools
       stream: true,
     });
 
@@ -86,7 +94,7 @@ class GptService extends EventEmitter {
             );
         }
 
-        const functionToCall = availableFunctions[functionName];
+        const functionToCall = this.availableFunctions[functionName];
         let functionResponse = functionToCall(functionArgs);
 
         if (functionName === "checkLanguage") {
@@ -128,7 +136,7 @@ class GptService extends EventEmitter {
       }
     }
     this.userContext.push({ role: "assistant", content: completeResponse });
-    console.log(`GPT -> user context length: ${this.userContext.length}`.green);
+    // console.log(`GPT -> user context length: ${this.userContext.length}`.green);
   }
 }
 

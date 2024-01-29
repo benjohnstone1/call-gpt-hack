@@ -1,6 +1,4 @@
 // create metadata for all the available functions to pass to completions API
-
-// we need to generate function-manifest file from user input within bot
 // https://platform.openai.com/docs/guides/function-calling
 
 const tools = [
@@ -13,10 +11,25 @@ const tools = [
       parameters: {
         type: "object",
         properties: {
+          type: "object",
+          properties: {
+            language: {
+              type: "string",
+              enum: ["english", "french", "italian", "spanish"],
+              description: "The language the user could want to converse in",
+            },
+          },
+          required: ["language"],
         },
-      },
-      returns: {
-      },
+        returns: {
+          type: "object",
+          properties: {
+            flex: {
+              type: "string",
+              description: "Flex taskrouter id",
+            },
+          },
+        },
     },
   },
   {
@@ -83,7 +96,7 @@ const tools = [
               "The types of languages the user could want to converse in",
           },
         },
-        required: ["language"], //need to get a value before calling it
+        required: ["language"],
       },
       returns: {
         type: "object",

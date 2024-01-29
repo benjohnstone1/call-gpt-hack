@@ -64,7 +64,7 @@ function summarizeCall(){
             // Create a summary using GPT-3.5 Turbo
             const gptResponse = await openai.chat.completions.create({
                 messages: [
-                    { role: 'user', content: `Summarize the following transcript win 3 sentences:\n${transcript}` }
+                    { role: 'user', content: `Summarize the following transcript within 3 sentences:\n${transcript}` }
                 ],
                 model: 'gpt-3.5-turbo',
             });
@@ -134,7 +134,6 @@ function saveSummary(callSummary) {
       } catch (err) {
         console.log("Oh shoot. Something went really wrong, check logs", err);
       }
-
 }
 
 module.exports = sendToFlex;
