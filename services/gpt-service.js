@@ -1,6 +1,7 @@
 const EventEmitter = require("events");
 const colors = require("colors");
 const OpenAI = require("openai");
+const functionsWebhookHandler = require("../functions/functions-webhook");
 
 class GptService extends EventEmitter {
   constructor(systemContext, initialGreeting, functionContext) {
@@ -24,11 +25,14 @@ class GptService extends EventEmitter {
     this.availableFunctions = {};
     this.functionContext.forEach((tool) => {
       var functionName = tool.function.name;
-      // Update this to take webhooks instead - case statement if/else
+      var webhookURL = tool.function.webhookURL;
+      console.log(webhookURL);
+      // Update this to take webhooks instead
       try {
-        this.availableFunctions[
-          functionName
-        ] = require(`../functions/${functionName}`);
+        this.availableFunctions[functionName] = webhookURL;
+        // this.availableFunctions[
+        //   functionName
+        // ] = require(`../functions/${functionName}`);
       } catch (e) {
         console.log(e);
       }
@@ -48,7 +52,7 @@ class GptService extends EventEmitter {
       // model: "gpt-4-1106-preview",
       model: "gpt-4",
       messages: this.userContext,
-      tools: this.functionContext, //this.functionContext, // from tools
+      tools: this.functionContext,
       stream: true,
     });
 
@@ -94,8 +98,20 @@ class GptService extends EventEmitter {
             );
         }
 
-        const functionToCall = this.availableFunctions[functionName];
-        let functionResponse = functionToCall(functionArgs);
+        let webhook_url = this.availableFunctions[functionName];
+        console.log(webhook_url);
+        // "https://hackathon-open-ai-7695.twil.io/" + functionName; //need to define webhook_url based on function name from tools
+        console.log(`function args are `, JSON.stringify(functionArgs)); // example checkPrice is {"model":"pro"}
+
+        const functionWebhook =
+          await functionsWebhookHandler.makeWebhookRequest(
+            webhook_url, //get this from tools - update
+            "POST",
+            functionArgs
+          );
+        // console.log(functionToCall);
+        let functionResponse = JSON.stringify(functionWebhook); // {price: 249}
+        console.log(functionResponse);
 
         if (functionName === "checkLanguage") {
           console.log("Language locale is".green, functionResponse.green);
@@ -106,7 +122,7 @@ class GptService extends EventEmitter {
         this.userContext.push({
           role: "function",
           name: functionName,
-          content: functionResponse, //this is what we get back from the function
+          content: functionResponse,
         });
         // extend conversation with function response
 

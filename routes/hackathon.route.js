@@ -1,7 +1,6 @@
 const config = require("../config/config.js");
 const router = config.router;
 const client = config.client;
-const axios = require("axios");
 
 let userContext = {};
 
@@ -15,12 +14,13 @@ const createTools = (functionContext) => {
           function: {
             name: functionContext[i].name,
             description: functionContext[i].desc,
+            webhookURL: functionContext[i].webhookURL,
           },
           parameters: {
             type: "object",
             properties: {
               [functionContext[i].properties[j].name]: {
-                type: functionContext[i].properties[j].type, //update in react to lower case
+                type: functionContext[i].properties[j].type,
                 enum: functionContext[i].properties[j].enum,
                 description: functionContext[i].properties[j].desc,
               },
@@ -61,8 +61,8 @@ router.post("/set-user-context/", async (req, res, next) => {
       languageContext: languageContext,
       functionContext: tools,
     };
-    exports.userContext = userContext; //how do we access this on submit?
-    return res.status(200).send("Updated context");
+    exports.userContext = userContext;
+    return res.status(200).send("Updated virtual agent context");
   } catch (e) {
     console.log(e);
   }

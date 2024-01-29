@@ -1,6 +1,8 @@
 // create metadata for all the available functions to pass to completions API
 // https://platform.openai.com/docs/guides/function-calling
 
+let webhook = "https://hackathon-open-ai-7695.twil.io/";
+
 const tools = [
   {
     type: "function",
@@ -19,6 +21,7 @@ const tools = [
         },
         required: ["language"],
       },
+      webhookURL: webhook + "sendToFlex",
       returns: {
         type: "object",
         properties: {
@@ -48,6 +51,7 @@ const tools = [
         },
         required: ["language"],
       },
+      webhookURL: webhook + "checkLanguage",
       returns: {
         type: "object",
         properties: {
@@ -77,6 +81,7 @@ const tools = [
         },
         required: ["model"],
       },
+      webhookURL: webhook + "checkInventory",
       returns: {
         type: "object",
         properties: {
@@ -107,6 +112,7 @@ const tools = [
         },
         required: ["model"],
       },
+      webhookURL: webhook + "checkPrice",
       returns: {
         type: "object",
         properties: {
@@ -136,8 +142,10 @@ const tools = [
             description: "The number of airpods they want to order",
           },
         },
+        webhookURL: webhook + "placeOrder",
         required: ["type", "quantity"],
       },
+      webhookURL: webhook + "checkPrice",
       returns: {
         type: "object",
         properties: {
