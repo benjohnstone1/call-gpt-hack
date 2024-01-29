@@ -2,6 +2,7 @@ const config = require("../config/config.js");
 const router = config.router;
 const client = config.client;
 const axios = require("axios");
+const fs = require('fs');
 
 let userContext = {};
 
@@ -40,6 +41,30 @@ const createTools = (functionContext) => {
       }
     }
     tools.push(toolsObj);
+    
+    //check if file name exists, create copy of templateFunctions.js
+    let fileName = __dirname + '/../functions/' + functionContext[i].name + '.js'
+    let templateFilePath = __dirname + '/../functions/templateFunction.js';
+    console.log(fileName);
+    
+    fs.stat(fileName, function(err, stat) {
+      console.log(err);
+      if (err == null) {
+        // file exists
+        console.log("Function File Exists");
+      } else {
+        // file doesn't exist
+        console.log("Function File doesn't exist");
+        fs.copyFile(templateFilePath, fileName, (error) => {
+          if (error) {
+            console.log ("error Found:", error)
+          } else {
+            console.log(`Function File ${functionContext[i].name} has been created`);
+          }
+        })
+      }
+    });
+
   }
   return tools;
 };
