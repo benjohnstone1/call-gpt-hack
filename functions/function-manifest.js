@@ -11,8 +11,6 @@ const tools = [
       parameters: {
         type: "object",
         properties: {
-          type: "object",
-          properties: {
             language: {
               type: "string",
               enum: ["english", "french", "italian", "spanish"],
@@ -29,7 +27,6 @@ const tools = [
               description: "Flex taskrouter id",
             },
           },
-        },
       },
     },
   },
