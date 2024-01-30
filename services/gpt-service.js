@@ -101,6 +101,11 @@ class GptService extends EventEmitter {
         let functionResponse = JSON.stringify(functionWebhook);
         console.log(functionResponse);
 
+        const segmentTrack = await functionsWebhookHandler.makeSegmentTrack(
+          functionArgs,
+          functionName
+        );
+
         if (functionName === "checkLanguage") {
           console.log("Language locale is".green, functionResponse.green);
           this.emit("localeChanged", functionResponse);

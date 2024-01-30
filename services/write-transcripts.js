@@ -5,7 +5,7 @@ const client = require("twilio")(accountSid, authToken);
 const twilioSyncServiceSid = process.env.TRANSCRIPT_SYNC_SERVICE_SID;
 
 function writeTranscriptToTwilio(transcript, speaker) {
-  console.log("Incoming event to store document");
+  //   console.log("Incoming event to store document");
   if (!callSID || !transcript) {
     const error = "Missing CallSid or transcript data";
     response.setBody({ message: error });
@@ -13,8 +13,8 @@ function writeTranscriptToTwilio(transcript, speaker) {
   }
 
   const listUniqueName = "Transcript-" + callSID;
-  console.log("Using Sync service with SID", twilioSyncServiceSid);
-  console.log("List Unique ID", listUniqueName);
+  //   console.log("Using Sync service with SID", twilioSyncServiceSid);
+  //   console.log("List Unique ID", listUniqueName);
   let listSid = undefined;
 
   try {
@@ -24,14 +24,14 @@ function writeTranscriptToTwilio(transcript, speaker) {
       .syncLists(listUniqueName)
       .fetch()
       .then((list) => {
-        console.log("List exists, SID", list.sid);
+        // console.log("List exists, SID", list.sid);
         listSid = list.sid;
         needToCreate = false;
       })
       .catch(async (error) => {
         // Need to create document
         if (error.code && error.code == 20404) {
-          console.log("List doesn't exist, creating");
+          //   console.log("List doesn't exist, creating");
           await client.sync.v1
             .services(twilioSyncServiceSid)
             .syncLists.create({ uniqueName: listUniqueName })
@@ -57,9 +57,9 @@ function writeTranscriptToTwilio(transcript, speaker) {
           .syncLists(listSid)
           .syncListItems.create({ data: { speaker, transcript } })
           .then((item) => {
-            console.log(
-              `Items inserted to list ${item.listSid} at index ${item.index}`
-            );
+            // console.log(
+            //   `Items inserted to list ${item.listSid} at index ${item.index}`
+            // );
           })
           .catch((error) => {
             console.error("Error insert items to list", error.message);

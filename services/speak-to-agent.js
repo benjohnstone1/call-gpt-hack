@@ -31,8 +31,8 @@ function speakToAgent(callSid) {
 
 function summarizeCall(callSID, twilioSyncServiceSid, client, mapSid) {
   const listUniqueName = "Transcript-" + callSID;
-  console.log("Using Sync service with SID", twilioSyncServiceSid);
-  console.log("List Unique ID", listUniqueName);
+  //   console.log("Using Sync service with SID", twilioSyncServiceSid);
+  //   console.log("List Unique ID", listUniqueName);
 
   try {
     // Check if list exists and update
@@ -90,7 +90,7 @@ function saveSummary(
       .syncMapItems(mapKey)
       .fetch()
       .then((map) => {
-        console.log("map item exists, key is", map.key);
+        // console.log("map item exists, key is", map.key);
         docSid = map.key;
         needToCreate = false;
       })
@@ -108,7 +108,7 @@ function saveSummary(
               },
             })
             .then((map) => {
-              console.log("Created map with key", map.key);
+              //   console.log("Created map with key", map.key);
             })
             .catch((error) => {
               console.error(
