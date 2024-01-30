@@ -1,38 +1,33 @@
+const config = require("../config/config.js");
+const webhook = config.defaultWebhook;
+
 // create metadata for all the available functions to pass to completions API
 // https://platform.openai.com/docs/guides/function-calling
 
-let webhook = "https://hackathon-open-ai-7695.twil.io/";
-
 const tools = [
-  {
-    type: "function",
-    function: {
-      name: "sendToFlex",
-      description:
-        "If user wants to speak with a human agent or if you don't understand the request after trying to clarify multiple times",
-      parameters: {
-        type: "object",
-        properties: {
-          language: {
-            type: "string",
-            enum: ["english", "french", "italian", "spanish"],
-            description: "The language the user could want to converse in",
-          },
-        },
-        required: ["language"],
-      },
-      webhookURL: webhook + "sendToFlex",
-      returns: {
-        type: "object",
-        properties: {
-          flex: {
-            type: "string",
-            description: "Flex taskrouter id",
-          },
-        },
-      },
-    },
-  },
+  // {
+  //   type: "function",
+  //   function: {
+  //     name: "sendToFlex",
+  //     description:
+  //       "If user wants to speak with a human agent or if you don't understand the request after trying to clarify multiple times",
+  //     parameters: {
+  //       type: "object",
+  //       properties: {},
+  //       required: [],
+  //     },
+  //     webhookURL: webhook + "sendToFlex",
+  //     returns: {
+  //       type: "object",
+  //       properties: {
+  //         flex: {
+  //           type: "string",
+  //           description: "Flex taskrouter id",
+  //         },
+  //       },
+  //     },
+  //   },
+  // },
   {
     type: "function",
     function: {

@@ -5,10 +5,15 @@ const bodyParser = require("body-parser");
 const ExpressWs = require("express-ws");
 const colors = require("colors");
 
+const { Analytics } = require("@segment/analytics-node");
+const analytics = new Analytics({ writeKey: process.env.SEGMENT_API_KEY });
 const { GptService } = require("./services/gpt-service");
 const { StreamService } = require("./services/stream-service");
 const { TranscriptionService } = require("./services/transcription-service");
 const { TextToSpeechService } = require("./services/tts-service");
+const writeTranscript = require("./services/write-transcripts");
+
+const VoiceResponse = require("twilio").twiml.VoiceResponse;
 
 const app = express();
 ExpressWs(app);
@@ -40,6 +45,17 @@ const PORT = process.env.PORT || 3000;
 
 app.post("/incoming", (req, res) => {
   global.callSID = req.body.CallSid;
+  console.log("Call sid", global.callSID);
+  global.callerID = req.body.Caller;
+
+  //Trigger Segment identity
+  analytics.identify({
+    userId: callerID,
+    traits: {
+      phone: callerID,
+    },
+  });
+
   res.status(200);
   res.type("text/xml");
   res.end(`
@@ -67,13 +83,17 @@ app.ws("/connection", (ws, req) => {
     "You speak " + hackathonRoute.userContext?.languageContext ??
     "You speak English";
 
+  const agentIntent = `
+  If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent'.
+  `;
+
   const initialGreeting = hackathonRoute.userContext?.greeting ?? "Hello!";
 
   const functionContext =
     hackathonRoute.userContext?.functionContext ?? initialTools;
 
   const gptService = new GptService(
-    systemContext + languageContext,
+    systemContext + languageContext + agentIntent,
     initialGreeting,
     functionContext
   );
@@ -132,6 +152,7 @@ app.ws("/connection", (ws, req) => {
   function transcriptionEventListener(transcriptionService) {
     transcriptionService.on("transcription", async (text) => {
       console.log("text received from transcription is".red, text.red);
+      writeTranscript.writeTranscriptToTwilio(text, "customer");
       if (!text) {
         return;
       }
@@ -167,6 +188,7 @@ app.ws("/connection", (ws, req) => {
 
   ttsService.on("speech", (responseIndex, audio, label, icount) => {
     console.log(`Interaction ${icount}: TTS -> TWILIO: ${label}`.blue);
+    writeTranscript.writeTranscriptToTwilio(label, "agent");
 
     streamService.buffer(responseIndex, audio);
   });
@@ -174,6 +196,25 @@ app.ws("/connection", (ws, req) => {
   streamService.on("audiosent", (markLabel) => {
     marks.push(markLabel);
   });
+});
+
+app.post("/speak-to-agent", (req, res) => {
+  // customerData = customerLookup('id','',req.query.id)
+  // console.log("customerData", customerData);
+  const resp = new VoiceResponse();
+  resp
+    .enqueue({
+      workflowSid: "WW2e4131c9a391b7f8bfdcdbe9eaff6856",
+    })
+    .task({}, JSON.stringify({ action: "transfer to agent" }));
+  // console.log('TR success')
+  // const start = resp.start()
+  // start.stream({
+  //   url: 'wss://cavila.ngrok.io'
+  // })
+  res.setHeader("Content-Type", "application/xml");
+  res.write(resp.toString());
+  res.end();
 });
 
 app.listen(PORT);

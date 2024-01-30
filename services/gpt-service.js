@@ -2,6 +2,7 @@ const EventEmitter = require("events");
 const colors = require("colors");
 const OpenAI = require("openai");
 const functionsWebhookHandler = require("../functions/functions-webhook");
+const speakToAgent = require("./speak-to-agent");
 
 class GptService extends EventEmitter {
   constructor(systemContext, initialGreeting, functionContext) {
@@ -28,7 +29,6 @@ class GptService extends EventEmitter {
       var webhookURL = tool.function.webhookURL;
       this.availableFunctions[functionName] = webhookURL;
     });
-    console.log(this.availableFunctions);
   }
 
   async completion(text, interactionCount, role = "user", name = "user") {
@@ -98,7 +98,7 @@ class GptService extends EventEmitter {
             "POST",
             functionArgs
           );
-        let functionResponse = JSON.stringify(functionWebhook); // {price: 249}
+        let functionResponse = JSON.stringify(functionWebhook);
         console.log(functionResponse);
 
         if (functionName === "checkLanguage") {
@@ -139,6 +139,10 @@ class GptService extends EventEmitter {
         }
       }
     }
+    if (completeResponse.includes("available agent")) {
+      await speakToAgent(callSID);
+    }
+
     this.userContext.push({ role: "assistant", content: completeResponse });
     // console.log(`GPT -> user context length: ${this.userContext.length}`.green);
   }
