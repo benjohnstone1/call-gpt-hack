@@ -23,12 +23,25 @@ class GptService extends EventEmitter {
 
     // Import all functions included in function manifest
     // Note: the function name and file name must be the same
+
     this.availableFunctions = {};
-    this.functionContext.forEach((tool) => {
-      var functionName = tool.function.name;
-      var webhookURL = tool.function.webhookURL;
-      this.availableFunctions[functionName] = webhookURL;
+    tools.forEach((tool) => {
+      try {
+        functionName = tool.function.name;
+        this.availableFunctions[
+          functionName
+        ] = require(`../functions/${functionName}`);
+      } catch (e) {
+        console.log(e);
+      }
     });
+
+    // this.availableFunctions = {};
+    // this.functionContext.forEach((tool) => {
+    //   var functionName = tool.function.name;
+    //   var webhookURL = tool.function.webhookURL;
+    //   this.availableFunctions[functionName] = webhookURL;
+    // });
   }
 
   async completion(text, interactionCount, role = "user", name = "user") {
@@ -89,16 +102,21 @@ class GptService extends EventEmitter {
             );
         }
 
-        let webhook_url = this.availableFunctions[functionName];
-        console.log(webhook_url);
+        const functionToCall = availableFunctions[functionName];
+        let functionResponse = functionToCall(functionArgs);
 
-        const functionWebhook =
-          await functionsWebhookHandler.makeWebhookRequest(
-            webhook_url,
-            "POST",
-            functionArgs
-          );
-        let functionResponse = JSON.stringify(functionWebhook);
+        // let webhook_url = this.availableFunctions[functionName];
+        // console.log(webhook_url);
+
+        // const functionWebhook =
+        //   await functionsWebhookHandler.makeWebhookRequest(
+        //     webhook_url,
+        //     "POST",
+        //     functionArgs
+        //   );
+
+        // console.log(functionArgs);
+        // let functionResponse = JSON.stringify(functionWebhook);
         console.log(functionResponse);
 
         const segmentTrack = await functionsWebhookHandler.makeSegmentTrack(
