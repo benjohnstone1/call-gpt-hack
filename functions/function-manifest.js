@@ -41,7 +41,7 @@ const tools = [
             type: "string",
             enum: ["english", "french", "italian", "spanish"],
             description:
-              "The types of languages the user coule want to converse in",
+              "The types of languages the user could want to converse in",
           },
         },
         required: ["language"],

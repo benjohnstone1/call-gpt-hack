@@ -16,7 +16,7 @@ class TranscriptionService extends EventEmitter {
       model: "nova-2",
       punctuate: true,
       interim_results: true,
-      endpointing: 200,
+      endpointing: 100, //200
       utterance_end_ms: 1000,
       language: locale,
     });

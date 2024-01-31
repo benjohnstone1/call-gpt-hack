@@ -83,11 +83,10 @@ app.ws("/connection", (ws, req) => {
     "You speak " + hackathonRoute.userContext?.languageContext ??
     "You speak English";
 
-  const agentIntent = `
-  If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent'.
-  `;
+  const agentIntent =
+    " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
 
-  const initialGreeting = hackathonRoute.userContext?.greeting ?? "Hello!";
+  const initialGreeting = hackathonRoute.userContext?.greeting ?? "Bonjour!";
 
   const functionContext =
     hackathonRoute.userContext?.functionContext ?? initialTools;
@@ -102,7 +101,7 @@ app.ws("/connection", (ws, req) => {
 
   var checkNewInstance = true;
   if (checkNewInstance === true) {
-    locale = "en"; // e.g. en, fr, it, es
+    locale = "fr"; // e.g. en, fr, it, es
     transcriptionService = new TranscriptionService(locale);
   }
 
@@ -138,6 +137,7 @@ app.ws("/connection", (ws, req) => {
   });
 
   // Update transcription service locale
+  // consider updating this
   gptService.on("localeChanged", async (response) => {
     //When language is changed we need to close the existing deepgram instance and create a new one
     let newLocale = JSON.parse(response).locale;
@@ -207,11 +207,6 @@ app.post("/speak-to-agent", (req, res) => {
       workflowSid: "WW2e4131c9a391b7f8bfdcdbe9eaff6856",
     })
     .task({}, JSON.stringify({ action: "transfer to agent" }));
-  // console.log('TR success')
-  // const start = resp.start()
-  // start.stream({
-  //   url: 'wss://cavila.ngrok.io'
-  // })
   res.setHeader("Content-Type", "application/xml");
   res.write(resp.toString());
   res.end();
