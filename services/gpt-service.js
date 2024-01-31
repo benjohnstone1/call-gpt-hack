@@ -2,7 +2,14 @@ const EventEmitter = require("events");
 const colors = require("colors");
 const OpenAI = require("openai");
 const functionsWebhookHandler = require("../functions/functions-webhook");
-const speakToAgent = require("./speak-to-agent");
+const speakToAgent = require("./speak-to-agent"); //see if this is first
+const tools = require("../functions/function-manifest");
+
+const availableFunctions = {};
+tools.forEach((tool) => {
+  functionName = tool.function.name;
+  availableFunctions[functionName] = require(`../functions/${functionName}`);
+});
 
 class GptService extends EventEmitter {
   constructor(systemContext, initialGreeting, functionContext) {
@@ -20,28 +27,6 @@ class GptService extends EventEmitter {
       },
     ]),
       (this.partialResponseIndex = 0);
-
-    // Import all functions included in function manifest
-    // Note: the function name and file name must be the same
-
-    this.availableFunctions = {};
-    tools.forEach((tool) => {
-      try {
-        functionName = tool.function.name;
-        this.availableFunctions[
-          functionName
-        ] = require(`../functions/${functionName}`);
-      } catch (e) {
-        console.log(e);
-      }
-    });
-
-    // this.availableFunctions = {};
-    // this.functionContext.forEach((tool) => {
-    //   var functionName = tool.function.name;
-    //   var webhookURL = tool.function.webhookURL;
-    //   this.availableFunctions[functionName] = webhookURL;
-    // });
   }
 
   async completion(text, interactionCount, role = "user", name = "user") {
@@ -105,18 +90,6 @@ class GptService extends EventEmitter {
         const functionToCall = availableFunctions[functionName];
         let functionResponse = functionToCall(functionArgs);
 
-        // let webhook_url = this.availableFunctions[functionName];
-        // console.log(webhook_url);
-
-        // const functionWebhook =
-        //   await functionsWebhookHandler.makeWebhookRequest(
-        //     webhook_url,
-        //     "POST",
-        //     functionArgs
-        //   );
-
-        // console.log(functionArgs);
-        // let functionResponse = JSON.stringify(functionWebhook);
         console.log(functionResponse);
 
         const segmentTrack = await functionsWebhookHandler.makeSegmentTrack(

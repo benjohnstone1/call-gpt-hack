@@ -83,11 +83,10 @@ app.ws("/connection", (ws, req) => {
     "You speak " + hackathonRoute.userContext?.languageContext ??
     "You speak English";
 
-  const agentIntent = `
-  If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent'.
-  `;
+  const agentIntent =
+    " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
 
-  const initialGreeting = hackathonRoute.userContext?.greeting ?? "Howdy!";
+  const initialGreeting = hackathonRoute.userContext?.greeting ?? "Bonjour!";
 
   const functionContext =
     hackathonRoute.userContext?.functionContext ?? initialTools;
@@ -208,11 +207,6 @@ app.post("/speak-to-agent", (req, res) => {
       workflowSid: "WW2e4131c9a391b7f8bfdcdbe9eaff6856",
     })
     .task({}, JSON.stringify({ action: "transfer to agent" }));
-  // console.log('TR success')
-  // const start = resp.start()
-  // start.stream({
-  //   url: 'wss://cavila.ngrok.io'
-  // })
   res.setHeader("Content-Type", "application/xml");
   res.write(resp.toString());
   res.end();
