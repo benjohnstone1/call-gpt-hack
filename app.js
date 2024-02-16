@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const express = require("express");
 const bodyParser = require("body-parser");
 
@@ -8,12 +9,15 @@ const colors = require("colors");
 const { Analytics } = require("@segment/analytics-node");
 const analytics = new Analytics({ writeKey: process.env.SEGMENT_API_KEY });
 const { GptService } = require("./services/gpt-service");
+const { GptMessagingService } = require("./services/gpt-messaging-service");
 const { StreamService } = require("./services/stream-service");
 const { TranscriptionService } = require("./services/transcription-service");
 const { TextToSpeechService } = require("./services/tts-service");
 const writeTranscript = require("./services/write-transcripts");
 
+// Voice and messaging response
 const VoiceResponse = require("twilio").twiml.VoiceResponse;
+const { MessagingResponse } = require("twilio").twiml;
 
 const app = express();
 ExpressWs(app);
@@ -44,9 +48,9 @@ app.use("/hackathon", hackathonRoute.router);
 const PORT = process.env.PORT || 3000;
 
 app.post("/incoming", (req, res) => {
-  global.callSID = req.body.CallSid;
+  global.callSID = req.body.CallSid; //remove global callSid
   console.log("Call sid", global.callSID);
-  global.callerID = req.body.Caller;
+  global.callerID = req.body.Caller; //remove globalCallerId
 
   //Trigger Segment identity
   analytics.identify({
@@ -195,6 +199,47 @@ app.ws("/connection", (ws, req) => {
 
   streamService.on("audiosent", (markLabel) => {
     marks.push(markLabel);
+  });
+});
+
+let interactionCount = 0;
+
+app.post("/incomingMessage", (req, res) => {
+  const msg = req.body.Body;
+  console.log(msg);
+  const twiml = new MessagingResponse();
+
+  const systemContext =
+    hackathonRoute.userContext?.systemContext ??
+    "You are an outbound sales representative selling Apple Airpods. You have a youthful and cheery personality. Keep your responses as brief as possible but make every attempt to keep the caller on the phone without being rude. Don't ask more than 1 question at a time. Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous. Speak out all prices to include the currency. Please help them decide between the airpods, airpods pro and airpods max by asking questions like 'Do you prefer headphones that go in your ear or over the ear?'. If they are trying to choose between the airpods and airpods pro try asking them if they need noise canceling. Once you know which model they would like ask them how many they would like to purchase and try to get them to place an order. You must add a '•' symbol every 5 to 10 words at natural pauses where your response can be split for text to speech.";
+
+  const languageContext =
+    "You speak " + hackathonRoute.userContext?.languageContext ??
+    "You speak English";
+
+  const agentIntent =
+    " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
+
+  const initialGreeting = hackathonRoute.userContext?.greeting ?? "Bonjour!";
+
+  const functionContext =
+    hackathonRoute.userContext?.functionContext ?? initialTools;
+
+  const gptMessagingService = new GptMessagingService(
+    systemContext + languageContext + agentIntent,
+    initialGreeting,
+    functionContext
+  );
+
+  gptMessagingService.completion(msg, interactionCount);
+  gptMessagingService.on("gptreply", async (gptReply, icount) => {
+    console.log(
+      `Interaction ${icount}: GPT Messaging -> TTS: ${gptReply.completeResponse}`
+        .green
+    );
+    interactionCount += 1;
+    twiml.message(gptReply.completeResponse);
+    res.type("text/xml").send(twiml.toString()); //send multiple times - need one response
   });
 });
 

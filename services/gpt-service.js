@@ -99,6 +99,7 @@ class GptService extends EventEmitter {
 
         if (functionName === "checkLanguage") {
           console.log("Language locale is".green, functionResponse.green);
+          // want to sent console.logs to front end
           this.emit("localeChanged", functionResponse);
         }
 
