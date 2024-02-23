@@ -24,7 +24,7 @@ const createTools = (functionContext) => {
                 description: functionContext[i].properties[j].desc,
               },
             },
-            required: [functionContext[i].properties[j].name], //may need to adjust, making all props required
+            required: [functionContext[i].properties[j].name],
           },
           returns: {
             type: "object",

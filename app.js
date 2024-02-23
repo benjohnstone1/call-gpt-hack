@@ -18,7 +18,7 @@ const { TranscriptionService } = require("./services/transcription-service");
 const { TextToSpeechService } = require("./services/tts-service");
 const writeTranscript = require("./services/write-transcripts");
 
-// Voice and messaging response
+// Declare voice and messaging responses
 const VoiceResponse = require("twilio").twiml.VoiceResponse;
 const { MessagingResponse } = require("twilio").twiml;
 
@@ -50,9 +50,12 @@ app.use("/hackathon", hackathonRoute.router);
 
 const PORT = process.env.PORT || 3000;
 
-var callSid = "";
-var callerId = "";
+var callSid;
+var callerId;
+var locale;
+var transcriptionService;
 
+// Handle Incoming Call
 app.post("/incoming", (req, res) => {
   callSid = req.body.CallSid;
   callerId = req.body.Caller;
@@ -76,9 +79,7 @@ app.post("/incoming", (req, res) => {
   `);
 });
 
-var locale;
-var transcriptionService;
-
+// Handle Incoming Call Connection
 app.ws("/connection", (ws, req) => {
   ws.on("error", console.error);
   // Filled in from start message
@@ -211,10 +212,11 @@ app.ws("/connection", (ws, req) => {
 
 let interactionCount = 0;
 
-// Handle SMS Responses
+// Handle Incoming SMS
 app.post("/incomingMessage", (req, res) => {
   const msg = req.body.Body;
   console.log(msg);
+
   const twiml = new MessagingResponse();
 
   const systemContext =
