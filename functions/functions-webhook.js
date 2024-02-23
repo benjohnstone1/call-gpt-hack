@@ -4,16 +4,19 @@ const analytics = new Analytics({ writeKey: process.env.SEGMENT_API_KEY });
 
 // make callout to webhook
 // To do, currently only accepts post requests - would need to update front-end as well
-const makeWebhookRequest = async (webhook_url, method, functionArgs) => {
-  functionArgs.callSID = global.callSID;
-
+const makeWebhookRequest = async (
+  webhook_url,
+  method,
+  functionArgs,
+  callSid
+) => {
   console.log(functionArgs);
 
   try {
     if (method === "GET") {
       let response = await axios.get(webhook_url, {
         functionArgs,
-        callSid: global.callSID,
+        callSid: callSid,
       });
       return response.data;
     } else if (method === "POST") {
@@ -27,7 +30,7 @@ const makeWebhookRequest = async (webhook_url, method, functionArgs) => {
   }
 };
 
-const makeSegmentTrack = async (functionArgs, functionName) => {
+const makeSegmentTrack = async (functionArgs, functionName, callerId) => {
   // Set properties for segment function
   let properties = { source: "Voice AI IVR" };
   let numParams = Object.keys(functionArgs).length;
@@ -39,7 +42,7 @@ const makeSegmentTrack = async (functionArgs, functionName) => {
   }
   // Send Track event to Segment
   analytics.track({
-    userId: callerID,
+    userId: callerId,
     event: functionName,
     properties: properties,
   });

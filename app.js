@@ -1,4 +1,7 @@
-require("dotenv").config();
+const config = require("./config/config.js");
+const workflowSid = config.workflowSid;
+const server = config.server;
+const segmentKey = config.segmentKey;
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -7,7 +10,7 @@ const ExpressWs = require("express-ws");
 const colors = require("colors");
 
 const { Analytics } = require("@segment/analytics-node");
-const analytics = new Analytics({ writeKey: process.env.SEGMENT_API_KEY });
+const analytics = new Analytics({ writeKey: segmentKey });
 const { GptService } = require("./services/gpt-service");
 const { GptMessagingService } = require("./services/gpt-messaging-service");
 const { StreamService } = require("./services/stream-service");
@@ -47,16 +50,18 @@ app.use("/hackathon", hackathonRoute.router);
 
 const PORT = process.env.PORT || 3000;
 
+var callSid = "";
+var callerId = "";
+
 app.post("/incoming", (req, res) => {
-  global.callSID = req.body.CallSid; //remove global callSid
-  console.log("Call sid", global.callSID);
-  global.callerID = req.body.Caller; //remove globalCallerId
+  callSid = req.body.CallSid;
+  callerId = req.body.Caller;
 
   //Trigger Segment identity
   analytics.identify({
-    userId: callerID,
+    userId: callerId,
     traits: {
-      phone: callerID,
+      phone: callerId,
     },
   });
 
@@ -65,7 +70,7 @@ app.post("/incoming", (req, res) => {
   res.end(`
   <Response>
     <Connect>
-      <Stream url="wss://${process.env.SERVER}/connection" />
+      <Stream url="wss://${server}/connection" />
     </Connect>
   </Response>
   `);
@@ -90,7 +95,7 @@ app.ws("/connection", (ws, req) => {
   const agentIntent =
     " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
 
-  const initialGreeting = hackathonRoute.userContext?.greeting ?? "Bonjour!";
+  const initialGreeting = hackathonRoute.userContext?.greeting ?? "Hello!";
 
   const functionContext =
     hackathonRoute.userContext?.functionContext ?? initialTools;
@@ -98,14 +103,16 @@ app.ws("/connection", (ws, req) => {
   const gptService = new GptService(
     systemContext + languageContext + agentIntent,
     initialGreeting,
-    functionContext
+    functionContext,
+    callSid,
+    callerId
   );
 
   const streamService = new StreamService(ws);
 
   var checkNewInstance = true;
   if (checkNewInstance === true) {
-    locale = "fr"; // e.g. en, fr, it, es
+    locale = "en"; // e.g. en, fr, it, es
     transcriptionService = new TranscriptionService(locale);
   }
 
@@ -156,7 +163,7 @@ app.ws("/connection", (ws, req) => {
   function transcriptionEventListener(transcriptionService) {
     transcriptionService.on("transcription", async (text) => {
       console.log("text received from transcription is".red, text.red);
-      writeTranscript.writeTranscriptToTwilio(text, "customer");
+      writeTranscript.writeTranscriptToTwilio(text, "customer", callSid);
       if (!text) {
         return;
       }
@@ -192,7 +199,7 @@ app.ws("/connection", (ws, req) => {
 
   ttsService.on("speech", (responseIndex, audio, label, icount) => {
     console.log(`Interaction ${icount}: TTS -> TWILIO: ${label}`.blue);
-    writeTranscript.writeTranscriptToTwilio(label, "agent");
+    writeTranscript.writeTranscriptToTwilio(label, "agent", callSid);
 
     streamService.buffer(responseIndex, audio);
   });
@@ -204,6 +211,7 @@ app.ws("/connection", (ws, req) => {
 
 let interactionCount = 0;
 
+// Handle SMS Responses
 app.post("/incomingMessage", (req, res) => {
   const msg = req.body.Body;
   console.log(msg);
@@ -239,17 +247,16 @@ app.post("/incomingMessage", (req, res) => {
     );
     interactionCount += 1;
     twiml.message(gptReply.completeResponse);
-    res.type("text/xml").send(twiml.toString()); //send multiple times - need one response
+    res.type("text/xml").send(twiml.toString());
   });
 });
 
+// Send to Flex
 app.post("/speak-to-agent", (req, res) => {
-  // customerData = customerLookup('id','',req.query.id)
-  // console.log("customerData", customerData);
   const resp = new VoiceResponse();
   resp
     .enqueue({
-      workflowSid: "WW2e4131c9a391b7f8bfdcdbe9eaff6856",
+      workflowSid: workflowSid,
     })
     .task({}, JSON.stringify({ action: "transfer to agent" }));
   res.setHeader("Content-Type", "application/xml");

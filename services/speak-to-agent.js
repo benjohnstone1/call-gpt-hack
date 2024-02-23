@@ -1,15 +1,13 @@
-// const authToken = config.authToken;
-// const client = require("twilio")(accountSid, authToken);
 const OpenAI = require("openai");
-const twilioSyncServiceSid = process.env.TRANSCRIPT_SYNC_SERVICE_SID;
-const mapSid = process.env.CALLSUMMARY_MAP_SID;
+const config = require("../config/config.js");
+const client = config.client;
+const server = config.server;
+const openAIKey = config.openAIKey;
+const twilioSyncServiceSid = config.transcriptServiceSid;
+const mapSid = config.callSummaryMapSid;
 
 function speakToAgent(callSid) {
-  const client = require("twilio")(
-    process.env.TWILIO_ACCOUNT_SID_FLEX,
-    process.env.TWILIO_AUTH_TOKEN_FLEX
-  );
-  summarizeCall(callSID, twilioSyncServiceSid, client, mapSid);
+  summarizeCall(callSid, twilioSyncServiceSid, client, mapSid);
 
   // time delayed function to update the call to URI for enqueuing the call.
   const sendToAgent = async (callSid) => {
@@ -17,7 +15,7 @@ function speakToAgent(callSid) {
       .calls(callSid)
       .update({
         method: "POST",
-        url: `https://${process.env.SERVER}/speak-to-agent?`,
+        url: `https://${server}/speak-to-agent?`,
       })
       .then((ret) => {
         return;
@@ -29,8 +27,8 @@ function speakToAgent(callSid) {
   setTimeout(() => sendToAgent(callSid), 5000);
 }
 
-function summarizeCall(callSID, twilioSyncServiceSid, client, mapSid) {
-  const listUniqueName = "Transcript-" + callSID;
+function summarizeCall(callSid, twilioSyncServiceSid, client, mapSid) {
+  const listUniqueName = "Transcript-" + callSid;
   //   console.log("Using Sync service with SID", twilioSyncServiceSid);
   //   console.log("List Unique ID", listUniqueName);
 
@@ -48,7 +46,7 @@ function summarizeCall(callSID, twilioSyncServiceSid, client, mapSid) {
         });
 
         const openai = new OpenAI({
-          apiKey: process.env.OPENAI_API_KEY,
+          apiKey: openAIKey,
         });
 
         // Create a summary using GPT-3.5 Turbo
@@ -76,12 +74,12 @@ function summarizeCall(callSID, twilioSyncServiceSid, client, mapSid) {
 
 function saveSummary(
   callSummary,
-  callSID,
+  callSid,
   twilioSyncServiceSid,
   mapSid,
   client
 ) {
-  const mapKey = "Summary-" + callSID;
+  const mapKey = "Summary-" + callSid;
   try {
     // Check if map exists and update
     client.sync.v1

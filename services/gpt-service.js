@@ -2,7 +2,7 @@ const EventEmitter = require("events");
 const colors = require("colors");
 const OpenAI = require("openai");
 const functionsWebhookHandler = require("../functions/functions-webhook");
-const speakToAgent = require("./speak-to-agent"); //see if this is first
+const speakToAgent = require("./speak-to-agent");
 const tools = require("../functions/function-manifest");
 
 const availableFunctions = {};
@@ -12,9 +12,17 @@ tools.forEach((tool) => {
 });
 
 class GptService extends EventEmitter {
-  constructor(systemContext, initialGreeting, functionContext) {
+  constructor(
+    systemContext,
+    initialGreeting,
+    functionContext,
+    callSid,
+    callerId
+  ) {
     super();
     this.functionContext = functionContext;
+    this.callSid = callSid;
+    this.callerId = callerId;
     this.openai = new OpenAI();
     (this.userContext = [
       {
@@ -94,12 +102,12 @@ class GptService extends EventEmitter {
 
         const segmentTrack = await functionsWebhookHandler.makeSegmentTrack(
           functionArgs,
-          functionName
+          functionName,
+          this.callerId
         );
 
         if (functionName === "checkLanguage") {
           console.log("Language locale is".green, functionResponse.green);
-          // want to sent console.logs to front end
           this.emit("localeChanged", functionResponse);
         }
 
@@ -137,7 +145,7 @@ class GptService extends EventEmitter {
       }
     }
     if (completeResponse.includes("available agent")) {
-      await speakToAgent(callSID);
+      await speakToAgent(this.callSid);
     }
 
     this.userContext.push({ role: "assistant", content: completeResponse });

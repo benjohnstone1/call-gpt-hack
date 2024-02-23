@@ -1,20 +1,18 @@
 //config
-const accountSid = process.env.TWILIO_ACCOUNT_SID_FLEX;
-const authToken = process.env.TWILIO_AUTH_TOKEN_FLEX;
-const client = require("twilio")(accountSid, authToken);
-const twilioSyncServiceSid = process.env.TRANSCRIPT_SYNC_SERVICE_SID;
+const config = require("../config/config.js");
+const accountSid = config.accountSid;
+const authToken = config.authToken;
+const client = config.client;
+const twilioSyncServiceSid = config.transcriptServiceSid;
 
-function writeTranscriptToTwilio(transcript, speaker) {
-  //   console.log("Incoming event to store document");
-  if (!callSID || !transcript) {
-    const error = "Missing CallSid or transcript data";
+function writeTranscriptToTwilio(transcript, speaker, callSid) {
+  if (!callSid || !transcript) {
+    const error = "Missing callSid or transcript data";
     response.setBody({ message: error });
     response.setStatusCode(400);
   }
 
-  const listUniqueName = "Transcript-" + callSID;
-  //   console.log("Using Sync service with SID", twilioSyncServiceSid);
-  //   console.log("List Unique ID", listUniqueName);
+  const listUniqueName = "Transcript-" + callSid;
   let listSid = undefined;
 
   try {
@@ -24,14 +22,12 @@ function writeTranscriptToTwilio(transcript, speaker) {
       .syncLists(listUniqueName)
       .fetch()
       .then((list) => {
-        // console.log("List exists, SID", list.sid);
         listSid = list.sid;
         needToCreate = false;
       })
       .catch(async (error) => {
         // Need to create document
         if (error.code && error.code == 20404) {
-          //   console.log("List doesn't exist, creating");
           await client.sync.v1
             .services(twilioSyncServiceSid)
             .syncLists.create({ uniqueName: listUniqueName })
