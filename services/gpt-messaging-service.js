@@ -5,17 +5,19 @@ const functionsWebhookHandler = require("../functions/functions-webhook");
 // const speakToAgent = require("./speak-to-agent");
 const tools = require("../functions/function-manifest");
 
-const availableFunctions = {};
-tools.forEach((tool) => {
-  functionName = tool.function.name;
-  availableFunctions[functionName] = require(`../functions/${functionName}`);
-});
-
 class GptMessagingService extends EventEmitter {
   constructor(systemContext, initialGreeting, functionContext) {
     super();
     this.functionContext = functionContext;
     this.openai = new OpenAI();
+
+    this.availableFunctions = {};
+    this.functionContext.forEach((tool) => {
+      var functionName = tool.function.name;
+      var webhookURL = tool.function.webhookURL;
+      this.availableFunctions[functionName] = webhookURL;
+    });
+
     (this.userContext = [
       {
         role: "system",
@@ -85,16 +87,24 @@ class GptMessagingService extends EventEmitter {
           );
       }
 
-      const functionToCall = availableFunctions[functionName];
-      let functionResponse = functionToCall(functionArgs);
+      let webhook_url = this.availableFunctions[functionName];
+      console.log(webhook_url);
+
+      const functionWebhook = await functionsWebhookHandler.makeWebhookRequest(
+        webhook_url,
+        "POST",
+        functionArgs,
+        this.callSid
+      );
+      let functionResponse = JSON.stringify(functionWebhook);
       console.log(functionResponse);
+
       // Step 4: send the info on the function call and function response to GPT
       this.userContext.push({
         role: "function",
         name: functionName,
         content: functionResponse,
       });
-      // extend conversation with function response
 
       // call the completion function again but pass in the function response to have OpenAI generate a new assistant response
       await this.completion(
@@ -111,7 +121,7 @@ class GptMessagingService extends EventEmitter {
       this.emit("gptreply", gptReply, interactionCount);
     }
 
-    // if (completeResponse.includes("available agent")) {
+    // if (completeResponse.includes("agent")) {
     //   await speakToAgent(callSID);
     // }
 

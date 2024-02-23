@@ -5,11 +5,11 @@ const functionsWebhookHandler = require("../functions/functions-webhook");
 const speakToAgent = require("./speak-to-agent");
 const tools = require("../functions/function-manifest");
 
-const availableFunctions = {};
-tools.forEach((tool) => {
-  functionName = tool.function.name;
-  availableFunctions[functionName] = require(`../functions/${functionName}`);
-});
+// const availableFunctions = {};
+// tools.forEach((tool) => {
+//   functionName = tool.function.name;
+//   availableFunctions[functionName] = require(`../functions/${functionName}`);
+// });
 
 class GptService extends EventEmitter {
   constructor(
@@ -24,6 +24,14 @@ class GptService extends EventEmitter {
     this.callSid = callSid;
     this.callerId = callerId;
     this.openai = new OpenAI();
+
+    this.availableFunctions = {};
+    this.functionContext.forEach((tool) => {
+      var functionName = tool.function.name;
+      var webhookURL = tool.function.webhookURL;
+      this.availableFunctions[functionName] = webhookURL;
+    });
+
     (this.userContext = [
       {
         role: "system",
@@ -95,9 +103,22 @@ class GptService extends EventEmitter {
             );
         }
 
-        const functionToCall = availableFunctions[functionName];
-        let functionResponse = functionToCall(functionArgs);
+        // check
+        let webhook_url = this.availableFunctions[functionName];
+        console.log(webhook_url);
 
+        // const functionToCall = availableFunctions[functionName];
+        // let functionResponse = functionToCall(functionArgs);
+        // console.log(functionResponse);
+
+        const functionWebhook =
+          await functionsWebhookHandler.makeWebhookRequest(
+            webhook_url,
+            "POST",
+            functionArgs,
+            this.callSid
+          );
+        let functionResponse = JSON.stringify(functionWebhook);
         console.log(functionResponse);
 
         const segmentTrack = await functionsWebhookHandler.makeSegmentTrack(
