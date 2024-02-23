@@ -113,7 +113,8 @@ class GptService extends EventEmitter {
         const segmentTrack = await functionsWebhookHandler.makeSegmentTrack(
           functionArgs,
           functionName,
-          this.callerId
+          this.callerId,
+          "Voice AI IVR"
         );
 
         if (functionName === "checkLanguage") {

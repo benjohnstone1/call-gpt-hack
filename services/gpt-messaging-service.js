@@ -6,9 +6,10 @@ const functionsWebhookHandler = require("../functions/functions-webhook");
 const tools = require("../functions/function-manifest");
 
 class GptMessagingService extends EventEmitter {
-  constructor(systemContext, initialGreeting, functionContext) {
+  constructor(systemContext, initialGreeting, functionContext, callerId) {
     super();
     this.functionContext = functionContext;
+    this.callerId = callerId;
     this.openai = new OpenAI();
 
     this.availableFunctions = {};
@@ -98,6 +99,13 @@ class GptMessagingService extends EventEmitter {
       );
       let functionResponse = JSON.stringify(functionWebhook);
       console.log(functionResponse);
+
+      const segmentTrack = await functionsWebhookHandler.makeSegmentTrack(
+        functionArgs,
+        functionName,
+        this.callerId,
+        "SMS AI IVR"
+      );
 
       // Step 4: send the info on the function call and function response to GPT
       this.userContext.push({

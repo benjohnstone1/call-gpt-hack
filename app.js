@@ -149,9 +149,8 @@ app.ws("/connection", (ws, req) => {
   });
 
   // Update transcription service locale
-  // consider updating this
   gptService.on("localeChanged", async (response) => {
-    //When language is changed we need to close the existing deepgram instance and create a new one
+    // When language is changed we need to close the existing deepgram instance and create a new instance with new locale
     let newLocale = JSON.parse(response).locale;
     transcriptionService.closeConnection();
     checkNewInstance = false;
@@ -214,6 +213,18 @@ let interactionCount = 0;
 
 // Handle Incoming SMS
 app.post("/incomingMessage", (req, res) => {
+  /* 
+  To do -> we need to define a Conversation and when an SMS conversation is a new interaction vs not
+  // we then need to check tracking segment events and sending to flex
+
+  Check if (!conversation){
+    createConversation()
+  } else {
+
+  }
+
+  */
+  callerId = req.body.From;
   const msg = req.body.Body;
   console.log(msg);
 
@@ -238,7 +249,8 @@ app.post("/incomingMessage", (req, res) => {
   const gptMessagingService = new GptMessagingService(
     systemContext + languageContext + agentIntent,
     initialGreeting,
-    functionContext
+    functionContext,
+    callerId
   );
 
   gptMessagingService.completion(msg, interactionCount);

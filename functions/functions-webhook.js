@@ -2,8 +2,7 @@ const axios = require("axios");
 const { Analytics } = require("@segment/analytics-node");
 const analytics = new Analytics({ writeKey: process.env.SEGMENT_API_KEY });
 
-// make callout to webhook
-// To do, currently only accepts post requests - would need to update front-end as well
+// To do - Currently only accepts post requests - would need to update front-end to accept GET
 const makeWebhookRequest = async (
   webhook_url,
   method,
@@ -30,9 +29,14 @@ const makeWebhookRequest = async (
   }
 };
 
-const makeSegmentTrack = async (functionArgs, functionName, callerId) => {
+const makeSegmentTrack = async (
+  functionArgs,
+  functionName,
+  callerId,
+  source
+) => {
   // Set properties for segment function
-  let properties = { source: "Voice AI IVR" };
+  let properties = { source: source };
   let numParams = Object.keys(functionArgs).length;
   for (let i = 0; i < numParams; i++) {
     let key = Object.keys(functionArgs)[i];
@@ -40,7 +44,7 @@ const makeSegmentTrack = async (functionArgs, functionName, callerId) => {
     properties[key] = value;
     console.log(properties);
   }
-  // Send Track event to Segment
+  // Send track event to Segment
   analytics.track({
     userId: callerId,
     event: functionName,
