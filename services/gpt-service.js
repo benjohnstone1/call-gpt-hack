@@ -5,12 +5,6 @@ const functionsWebhookHandler = require("../functions/functions-webhook");
 const speakToAgent = require("./speak-to-agent");
 const tools = require("../functions/function-manifest");
 
-// const availableFunctions = {};
-// tools.forEach((tool) => {
-//   functionName = tool.function.name;
-//   availableFunctions[functionName] = require(`../functions/${functionName}`);
-// });
-
 class GptService extends EventEmitter {
   constructor(
     systemContext,
@@ -103,13 +97,8 @@ class GptService extends EventEmitter {
             );
         }
 
-        // check
         let webhook_url = this.availableFunctions[functionName];
         console.log(webhook_url);
-
-        // const functionToCall = availableFunctions[functionName];
-        // let functionResponse = functionToCall(functionArgs);
-        // console.log(functionResponse);
 
         const functionWebhook =
           await functionsWebhookHandler.makeWebhookRequest(
