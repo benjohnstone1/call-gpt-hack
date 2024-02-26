@@ -156,7 +156,7 @@ class GptService extends EventEmitter {
       }
     }
     if (completeResponse.includes("available agent")) {
-      await speakToAgent(this.callSid);
+      await speakToAgent.speakToAgent(this.callSid);
     }
 
     this.userContext.push({ role: "assistant", content: completeResponse });

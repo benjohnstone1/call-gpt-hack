@@ -27,6 +27,10 @@ function speakToAgent(callSid) {
   setTimeout(() => sendToAgent(callSid), 5000);
 }
 
+function transferSMSToAgent(callerId) {
+  // Need to update
+}
+
 function summarizeCall(callSid, twilioSyncServiceSid, client, mapSid) {
   const listUniqueName = "Transcript-" + callSid;
   //   console.log("Using Sync service with SID", twilioSyncServiceSid);
@@ -139,4 +143,5 @@ function saveSummary(
   }
 }
 
-module.exports = speakToAgent;
+exports.speakToAgent = speakToAgent;
+exports.transferSMSToAgent = transferSMSToAgent;

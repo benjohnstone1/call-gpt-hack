@@ -17,10 +17,10 @@ const { StreamService } = require("./services/stream-service");
 const { TranscriptionService } = require("./services/transcription-service");
 const { TextToSpeechService } = require("./services/tts-service");
 const writeTranscript = require("./services/write-transcripts");
+const conversationsHelper = require("./services/conversations-helper.js");
 
-// Declare voice and messaging responses
+// Declare voice response
 const VoiceResponse = require("twilio").twiml.VoiceResponse;
-const { MessagingResponse } = require("twilio").twiml;
 
 const app = express();
 ExpressWs(app);
@@ -55,6 +55,23 @@ var callerId;
 var locale;
 var transcriptionService;
 
+// Define default settings
+const systemContext =
+  hackathonRoute.userContext?.systemContext ??
+  "You are an outbound sales representative selling Apple Airpods. You have a youthful and cheery personality. Keep your responses as brief as possible but make every attempt to keep the caller on the phone without being rude. Don't ask more than 1 question at a time. Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous. Speak out all prices to include the currency. Please help them decide between the airpods, airpods pro and airpods max by asking questions like 'Do you prefer headphones that go in your ear or over the ear?'. If they are trying to choose between the airpods and airpods pro try asking them if they need noise canceling. Once you know which model they would like ask them how many they would like to purchase and try to get them to place an order. If they ask to end the conversation thank them and wish them a good day.";
+
+const languageContext =
+  "You speak " + hackathonRoute.userContext?.languageContext ??
+  "You speak English";
+
+const agentIntent =
+  " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
+
+const functionContext =
+  hackathonRoute.userContext?.functionContext ?? initialTools;
+
+const initialGreeting = hackathonRoute.userContext?.greeting ?? "Hello!";
+
 // Handle Incoming Call
 app.post("/incoming", (req, res) => {
   callSid = req.body.CallSid;
@@ -84,22 +101,6 @@ app.ws("/connection", (ws, req) => {
   ws.on("error", console.error);
   // Filled in from start message
   let streamSid;
-
-  const systemContext =
-    hackathonRoute.userContext?.systemContext ??
-    "You are an outbound sales representative selling Apple Airpods. You have a youthful and cheery personality. Keep your responses as brief as possible but make every attempt to keep the caller on the phone without being rude. Don't ask more than 1 question at a time. Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous. Speak out all prices to include the currency. Please help them decide between the airpods, airpods pro and airpods max by asking questions like 'Do you prefer headphones that go in your ear or over the ear?'. If they are trying to choose between the airpods and airpods pro try asking them if they need noise canceling. Once you know which model they would like ask them how many they would like to purchase and try to get them to place an order. You must add a '•' symbol every 5 to 10 words at natural pauses where your response can be split for text to speech.";
-
-  const languageContext =
-    "You speak " + hackathonRoute.userContext?.languageContext ??
-    "You speak English";
-
-  const agentIntent =
-    " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
-
-  const initialGreeting = hackathonRoute.userContext?.greeting ?? "Hello!";
-
-  const functionContext =
-    hackathonRoute.userContext?.functionContext ?? initialTools;
 
   const gptService = new GptService(
     systemContext + languageContext + agentIntent,
@@ -212,45 +213,26 @@ app.ws("/connection", (ws, req) => {
 let interactionCount = 0;
 
 // Handle Incoming SMS
-app.post("/incomingMessage", (req, res) => {
-  /* 
-  To do -> we need to define a Conversation and when an SMS conversation is a new interaction vs not
-  // we then need to check tracking segment events and sending to flex
-
-  Check if (!conversation){
-    createConversation()
-  } else {
-
-  }
-
-  */
+app.post("/incomingMessage", async (req, res) => {
   callerId = req.body.From;
+  twilioNumber = req.body.To;
   const msg = req.body.Body;
-  console.log(msg);
 
-  const twiml = new MessagingResponse();
+  const conversationSid =
+    await conversationsHelper.checkActiveConversationExists(
+      callerId,
+      twilioNumber
+    );
 
-  const systemContext =
-    hackathonRoute.userContext?.systemContext ??
-    "You are an outbound sales representative selling Apple Airpods. You have a youthful and cheery personality. Keep your responses as brief as possible but make every attempt to keep the caller on the phone without being rude. Don't ask more than 1 question at a time. Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous. Speak out all prices to include the currency. Please help them decide between the airpods, airpods pro and airpods max by asking questions like 'Do you prefer headphones that go in your ear or over the ear?'. If they are trying to choose between the airpods and airpods pro try asking them if they need noise canceling. Once you know which model they would like ask them how many they would like to purchase and try to get them to place an order. You must add a '•' symbol every 5 to 10 words at natural pauses where your response can be split for text to speech.";
-
-  const languageContext =
-    "You speak " + hackathonRoute.userContext?.languageContext ??
-    "You speak English";
-
-  const agentIntent =
-    " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
-
-  const initialGreeting = hackathonRoute.userContext?.greeting ?? "Bonjour!";
-
-  const functionContext =
-    hackathonRoute.userContext?.functionContext ?? initialTools;
+  const conversationHistory =
+    await conversationsHelper.listConversationMessages(conversationSid);
 
   const gptMessagingService = new GptMessagingService(
     systemContext + languageContext + agentIntent,
-    initialGreeting,
     functionContext,
-    callerId
+    callerId,
+    conversationSid,
+    conversationHistory
   );
 
   gptMessagingService.completion(msg, interactionCount);
@@ -260,8 +242,8 @@ app.post("/incomingMessage", (req, res) => {
         .green
     );
     interactionCount += 1;
-    twiml.message(gptReply.completeResponse);
-    res.type("text/xml").send(twiml.toString());
+    conversationsHelper.sendMessage(conversationSid, gptReply.completeResponse);
+    res.status(200);
   });
 });
 

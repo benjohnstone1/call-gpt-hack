@@ -2,16 +2,24 @@ const EventEmitter = require("events");
 const colors = require("colors");
 const OpenAI = require("openai");
 const functionsWebhookHandler = require("../functions/functions-webhook");
-// const speakToAgent = require("./speak-to-agent");
+const speakToAgent = require("./speak-to-agent");
 const tools = require("../functions/function-manifest");
+const conversationsHelper = require("./conversations-helper");
 
 class GptMessagingService extends EventEmitter {
-  constructor(systemContext, initialGreeting, functionContext, callerId) {
+  constructor(
+    systemContext,
+    functionContext,
+    callerId,
+    conversationSid,
+    conversationHistory
+  ) {
     super();
     this.functionContext = functionContext;
     this.callerId = callerId;
+    this.conversationSid = conversationSid;
+    this.conversationHistory = conversationHistory;
     this.openai = new OpenAI();
-
     this.availableFunctions = {};
     this.functionContext.forEach((tool) => {
       var functionName = tool.function.name;
@@ -24,12 +32,12 @@ class GptMessagingService extends EventEmitter {
         role: "system",
         content: systemContext,
       },
-      {
-        role: "assistant",
-        content: initialGreeting,
-      },
     ]),
       (this.partialResponseIndex = 0);
+
+    for (let i = 0; i < conversationHistory.length; i++) {
+      this.userContext.push(conversationHistory.reverse()[i]);
+    }
   }
 
   async completion(text, interactionCount, role = "user", name = "user") {
@@ -89,14 +97,13 @@ class GptMessagingService extends EventEmitter {
       }
 
       let webhook_url = this.availableFunctions[functionName];
-      console.log(webhook_url);
-
       const functionWebhook = await functionsWebhookHandler.makeWebhookRequest(
         webhook_url,
         "POST",
         functionArgs,
         this.callSid
       );
+
       let functionResponse = JSON.stringify(functionWebhook);
       console.log(functionResponse);
 
@@ -129,9 +136,19 @@ class GptMessagingService extends EventEmitter {
       this.emit("gptreply", gptReply, interactionCount);
     }
 
-    // if (completeResponse.includes("agent")) {
-    //   await speakToAgent(callSID);
-    // }
+    const completeConditions = ["end", "conversation", "done", "complete"];
+
+    if (completeConditions.some((el) => text.toLowerCase().includes(el))) {
+      console.log("Closing conversation");
+      await conversationsHelper.closeConversation(this.conversationSid);
+    }
+
+    const agentConditions = ["agent", "human", "real person"];
+
+    if (agentConditions.some((el) => text.toLowerCase().includes(el))) {
+      console.log("Transferring to agent");
+      await speakToAgent.transferSMSToAgent(this.callerId);
+    }
 
     this.userContext.push({ role: "assistant", content: completeResponse });
   }

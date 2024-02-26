@@ -5,35 +5,12 @@ const webhook = config.defaultWebhook;
 // https://platform.openai.com/docs/guides/function-calling
 
 const tools = [
-  // {
-  //   type: "function",
-  //   function: {
-  //     name: "sendToFlex",
-  //     description:
-  //       "If user wants to speak with a human agent or if you don't understand the request after trying to clarify multiple times",
-  //     parameters: {
-  //       type: "object",
-  //       properties: {},
-  //       required: [],
-  //     },
-  //     webhookURL: webhook + "sendToFlex",
-  //     returns: {
-  //       type: "object",
-  //       properties: {
-  //         flex: {
-  //           type: "string",
-  //           description: "Flex taskrouter id",
-  //         },
-  //       },
-  //     },
-  //   },
-  // },
   {
     type: "function",
     function: {
       name: "checkLanguage",
       description:
-        "Check the language used in the conversation to know how to reply to the user, the user may choose to switch languages during the conversation",
+        "Check the language used in the conversation to know how to reply to the user, the user may choose to switch languages during the conversation, only check for language if customer asks to switch language",
       parameters: {
         type: "object",
         properties: {
