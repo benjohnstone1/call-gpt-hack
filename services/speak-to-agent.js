@@ -5,6 +5,8 @@ const server = config.server;
 const openAIKey = config.openAIKey;
 const twilioSyncServiceSid = config.transcriptServiceSid;
 const mapSid = config.callSummaryMapSid;
+const workflowSid = config.workflowSid;
+const workspaceSid = config.workspaceSid;
 
 function speakToAgent(callSid) {
   summarizeCall(callSid, twilioSyncServiceSid, client, mapSid);
@@ -27,8 +29,67 @@ function speakToAgent(callSid) {
   setTimeout(() => sendToAgent(callSid), 5000);
 }
 
-function transferSMSToAgent(callerId) {
-  // Need to update
+async function transferSMSToAgent(callerId) {
+  // Need to update to use interactions API
+  const task = await client.taskrouter.v1
+    .workspaces(workspaceSid)
+    .tasks.create({
+      attributes: JSON.stringify({
+        type: "support",
+        // phone: callerId,
+        name: callerId,
+        channelType: "sms",
+      }),
+      workflowSid: workflowSid,
+    });
+
+  // const int = await client.flexApi.v1.interaction.create({
+  //   channel: {
+  //     type: "sms",
+  //     initiated_by: "customer",
+  //     name: callerId,
+  //   },
+  //   routing: {
+  //     // properties: {
+  //     //   workspace_sid: workspaceSid,
+  //     //   workflow_sid: workflowSid,
+  //     //   task_channel_unique_name: "sms",
+  //     //   attributes: {
+  //     //     customerAddress: callerId,
+  //     //     name: callerId,
+  //     //   },
+  //     // },
+  //   },
+  // });
+
+  // console.log(int);
+
+  // const interaction = await client.flexApi.v1.interaction.create({
+  //   channel: {
+  //     type: "sms",
+  //     initiated_by: "agent",
+  //     properties: { type: "sms" },
+  //     participants: [
+  //       {
+  //         address: to10DLC(event.to),
+  //         proxy_address: "+15304530336",
+  //         type: "sms",
+  //       },
+  //     ],
+  //   },
+  //   routing: {
+  //     properties: {
+  //       workspace_sid: WORKSPACE_SID,
+  //       workflow_sid: WORKFLOW_SID,
+  //       queue_sid: QUEUE_SID,
+  //       worker_sid: workerSid,
+  //       task_channel_unique_name: "sms",
+  //       attributes: {
+  //         customerAddress: "+15304530336",
+  //       },
+  //     },
+  //   },
+  // });
 }
 
 function summarizeCall(callSid, twilioSyncServiceSid, client, mapSid) {

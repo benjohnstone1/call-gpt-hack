@@ -83,6 +83,7 @@ class GptMessagingService extends EventEmitter {
     // need to call function on behalf of Chat GPT with the arguments it parsed from the conversation
     if (finishReason === "tool_calls") {
       // parse JSON string of args into JSON object
+      this.emit("functionCall", functionName);
       try {
         functionArgs = JSON.parse(functionArgs);
       } catch (error) {
@@ -105,7 +106,7 @@ class GptMessagingService extends EventEmitter {
       );
 
       let functionResponse = JSON.stringify(functionWebhook);
-      console.log(functionResponse);
+      this.emit("functionResponse", functionResponse, functionArgs);
 
       const segmentTrack = await functionsWebhookHandler.makeSegmentTrack(
         functionArgs,

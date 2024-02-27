@@ -5,6 +5,8 @@ const segmentKey = config.segmentKey;
 
 const express = require("express");
 const bodyParser = require("body-parser");
+const http = require("http");
+const socketIo = require("socket.io");
 
 const ExpressWs = require("express-ws");
 const colors = require("colors");
@@ -33,6 +35,21 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+const ioServer = http.createServer(app);
+const io = socketIo(ioServer, {
+  cors: {
+    origin: "*",
+  },
+});
+
+// Create connection for Virtual Agent logs
+io.on("connection", (socket) => {
+  console.log("New user connected");
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
+});
 
 app.use(bodyParser.json());
 app.use(
@@ -129,9 +146,9 @@ app.ws("/connection", (ws, req) => {
     if (msg.event === "start") {
       streamSid = msg.start.streamSid;
       streamService.setStreamSid(streamSid);
-      console.log(
-        `Twilio -> Starting Media Stream for ${streamSid}`.underline.red
-      );
+      let message = `Starting Media Stream for ${streamSid}`;
+      console.log(message.red);
+      io.emit("logs", message, "orange");
       ttsService.generate({
         partialResponseIndex: null,
         partialResponse: initialGreeting,
@@ -140,13 +157,28 @@ app.ws("/connection", (ws, req) => {
       transcriptionService.send(msg.media.payload);
     } else if (msg.event === "mark") {
       const label = msg.mark.name;
-      console.log(
-        `Twilio -> Audio completed mark (${msg.sequenceNumber}): ${label}`.red
-      );
+      let message =
+        `Twilio -> Audio completed mark (${msg.sequenceNumber}): ${label}`.red;
+      console.log(message);
       marks = marks.filter((m) => m !== msg.mark.name);
     } else if (msg.event === "stop") {
-      console.log(`Twilio -> Media stream ${streamSid} ended.`.underline.red);
+      let message = `Twilio -> Media stream ${streamSid} ended.`.underline.red;
+      console.log(message);
     }
+  });
+
+  gptService.on("functionCall", async (functionName) => {
+    let message = `Called ${functionName} function - tracked in Segment`;
+    console.log(message.red);
+    io.emit("logs", message, "red");
+  });
+
+  gptService.on("functionResponse", async (functionResponse, functionArgs) => {
+    let message = `Arguments: ${JSON.stringify(
+      functionArgs
+    )} Response: ${functionResponse}`;
+    console.log(message.red);
+    io.emit("logs", message, "red");
   });
 
   // Update transcription service locale
@@ -168,10 +200,9 @@ app.ws("/connection", (ws, req) => {
       if (!text) {
         return;
       }
-      console.log(
-        `Interaction ${interactionCount} – STT -> GPT: ${text}`.yellow,
-        locale.yellow
-      );
+      let message = `User: ${text}`;
+      console.log(message.yellow);
+      io.emit("logs", message);
       gptService.completion(text, interactionCount);
       interactionCount += 1;
     });
@@ -192,9 +223,9 @@ app.ws("/connection", (ws, req) => {
   transcriptionEventListener(transcriptionService);
 
   gptService.on("gptreply", async (gptReply, icount) => {
-    console.log(
-      `Interaction ${icount}: GPT -> TTS: ${gptReply.partialResponse}`.green
-    );
+    let message = `Agent: ${gptReply.partialResponse}`;
+    console.log(message.green);
+    io.emit("logs", message, "green");
     ttsService.generate(gptReply, icount);
   });
 
@@ -218,6 +249,10 @@ app.post("/incomingMessage", async (req, res) => {
   twilioNumber = req.body.To;
   const msg = req.body.Body;
 
+  let message = `User: ${msg}`;
+  console.log(message.green);
+  io.emit("logs", message);
+
   const conversationSid =
     await conversationsHelper.checkActiveConversationExists(
       callerId,
@@ -236,11 +271,28 @@ app.post("/incomingMessage", async (req, res) => {
   );
 
   gptMessagingService.completion(msg, interactionCount);
+
+  gptMessagingService.on("functionCall", async (functionName) => {
+    let message = `Called ${functionName} function - tracked in Segment`;
+    console.log(message.red);
+    io.emit("logs", message, "red");
+  });
+
+  gptMessagingService.on(
+    "functionResponse",
+    async (functionResponse, functionArgs) => {
+      let message = `Arguments: ${JSON.stringify(
+        functionArgs
+      )} Response: ${functionResponse}`;
+      console.log(message.red);
+      io.emit("logs", message, "red");
+    }
+  );
+
   gptMessagingService.on("gptreply", async (gptReply, icount) => {
-    console.log(
-      `Interaction ${icount}: GPT Messaging -> TTS: ${gptReply.completeResponse}`
-        .green
-    );
+    let message = `GPT Agent: ${gptReply.completeResponse}`;
+    console.log(message.green);
+    io.emit("logs", message, "green");
     interactionCount += 1;
     conversationsHelper.sendMessage(conversationSid, gptReply.completeResponse);
     res.status(200);
@@ -262,3 +314,6 @@ app.post("/speak-to-agent", (req, res) => {
 
 app.listen(PORT);
 console.log(`Server running on port ${PORT}`);
+
+ioServer.listen(5001);
+console.log(`Io Server running on port 5001`);
