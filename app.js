@@ -5,9 +5,6 @@ const segmentKey = config.segmentKey;
 
 const express = require("express");
 const bodyParser = require("body-parser");
-const http = require("http");
-const socketIo = require("socket.io");
-
 const ExpressWs = require("express-ws");
 const colors = require("colors");
 
@@ -30,26 +27,11 @@ ExpressWs(app);
 const cors = require("cors");
 const corsOptions = {
   origin: "*",
-  credentials: true, //access-control-allow-credentials:true
+  credentials: true,
   optionSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
-
-const ioServer = http.createServer(app);
-const io = socketIo(ioServer, {
-  cors: {
-    origin: "*",
-  },
-});
-
-// Create connection for Virtual Agent logs
-io.on("connection", (socket) => {
-  console.log("New user connected");
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
-  });
-});
 
 app.use(bodyParser.json());
 app.use(
@@ -72,22 +54,43 @@ var callerId;
 var locale;
 var transcriptionService;
 
-// Define default settings
-const systemContext =
-  hackathonRoute.userContext?.systemContext ??
-  "You are an outbound sales representative selling Apple Airpods. You have a youthful and cheery personality. Keep your responses as brief as possible but make every attempt to keep the caller on the phone without being rude. Don't ask more than 1 question at a time. Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous. Speak out all prices to include the currency. Please help them decide between the airpods, airpods pro and airpods max by asking questions like 'Do you prefer headphones that go in your ear or over the ear?'. If they are trying to choose between the airpods and airpods pro try asking them if they need noise canceling. Once you know which model they would like ask them how many they would like to purchase and try to get them to place an order. If they ask to end the conversation thank them and wish them a good day.";
+// Create SSE for Virtual Agent logs
+let clients = [];
+let messages = [];
 
-const languageContext =
-  "You speak " + hackathonRoute.userContext?.languageContext ??
-  "You speak English";
+function eventsHandler(request, response, next) {
+  const headers = {
+    "Content-Type": "text/event-stream",
+    Connection: "keep-alive",
+    "Cache-Control": "no-cache",
+  };
+  response.writeHead(200, headers);
 
-const agentIntent =
-  " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
+  const data = `data: ${JSON.stringify(messages)}\n\n`;
 
-const functionContext =
-  hackathonRoute.userContext?.functionContext ?? initialTools;
+  response.write(data);
 
-const initialGreeting = hackathonRoute.userContext?.greeting ?? "Hello!";
+  const clientId = Date.now();
+
+  const newClient = {
+    id: clientId,
+    response,
+  };
+
+  clients.push(newClient);
+
+  request.on("close", () => {
+    console.log(`${clientId} Connection closed`);
+    clients = clients.filter((client) => client.id !== clientId);
+  });
+}
+app.get("/events", eventsHandler);
+
+function sendEventsToAllClients(newMessage) {
+  clients.forEach((client) =>
+    client.response.write(`data: ${JSON.stringify(newMessage)}\n\n`)
+  );
+}
 
 // Handle Incoming Call
 app.post("/incoming", (req, res) => {
@@ -115,6 +118,23 @@ app.post("/incoming", (req, res) => {
 
 // Handle Incoming Call Connection
 app.ws("/connection", (ws, req) => {
+  // Define default settings
+  var systemContext =
+    hackathonRoute.userContext?.systemContext ??
+    "You are an outbound sales representative selling Apple Airpods. You have a youthful and cheery personality. Keep your responses as brief as possible but make every attempt to keep the caller on the phone without being rude. Don't ask more than 1 question at a time. Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous. Speak out all prices to include the currency. Please help them decide between the airpods, airpods pro and airpods max by asking questions like 'Do you prefer headphones that go in your ear or over the ear?'. If they are trying to choose between the airpods and airpods pro try asking them if they need noise canceling. Once you know which model they would like ask them how many they would like to purchase and try to get them to place an order. If they ask to end the conversation thank them and wish them a good day.";
+
+  var languageContext =
+    "You speak " + hackathonRoute.userContext?.languageContext ??
+    "You speak English";
+
+  var agentIntent =
+    " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
+
+  var functionContext =
+    hackathonRoute.userContext?.functionContext ?? initialTools;
+
+  var initialGreeting = hackathonRoute.userContext?.greeting ?? "Hello!";
+
   ws.on("error", console.error);
   // Filled in from start message
   let streamSid;
@@ -148,7 +168,14 @@ app.ws("/connection", (ws, req) => {
       streamService.setStreamSid(streamSid);
       let message = `Starting Media Stream for ${streamSid}`;
       console.log(message.red);
-      io.emit("logs", message, "orange");
+      // io.emit("logs", message, "orange");
+      // replace this...
+      let event = {
+        log: message,
+        color: "orange",
+      };
+      sendEventsToAllClients(event);
+
       ttsService.generate({
         partialResponseIndex: null,
         partialResponse: initialGreeting,
@@ -170,7 +197,12 @@ app.ws("/connection", (ws, req) => {
   gptService.on("functionCall", async (functionName) => {
     let message = `Called ${functionName} function - tracked in Segment`;
     console.log(message.red);
-    io.emit("logs", message, "red");
+    // io.emit("logs", message, "red");
+    let event = {
+      log: message,
+      color: "red",
+    };
+    sendEventsToAllClients(event);
   });
 
   gptService.on("functionResponse", async (functionResponse, functionArgs) => {
@@ -178,7 +210,12 @@ app.ws("/connection", (ws, req) => {
       functionArgs
     )} Response: ${functionResponse}`;
     console.log(message.red);
-    io.emit("logs", message, "red");
+    // io.emit("logs", message, "red");
+    let event = {
+      log: message,
+      color: "red",
+    };
+    sendEventsToAllClients(event);
   });
 
   // Update transcription service locale
@@ -202,7 +239,11 @@ app.ws("/connection", (ws, req) => {
       }
       let message = `User: ${text}`;
       console.log(message.yellow);
-      io.emit("logs", message);
+      // io.emit("logs", message);
+      let event = {
+        log: message,
+      };
+      sendEventsToAllClients(event);
       gptService.completion(text, interactionCount);
       interactionCount += 1;
     });
@@ -225,7 +266,12 @@ app.ws("/connection", (ws, req) => {
   gptService.on("gptreply", async (gptReply, icount) => {
     let message = `Agent: ${gptReply.partialResponse}`;
     console.log(message.green);
-    io.emit("logs", message, "green");
+    // io.emit("logs", message, "green");
+    let event = {
+      log: message,
+      color: "green",
+    };
+    sendEventsToAllClients(event);
     ttsService.generate(gptReply, icount);
   });
 
@@ -245,13 +291,32 @@ let interactionCount = 0;
 
 // Handle Incoming SMS
 app.post("/incomingMessage", async (req, res) => {
+  // Define default settings
+  var systemContext =
+    hackathonRoute.userContext?.systemContext ??
+    "You are an outbound sales representative selling Apple Airpods. You have a youthful and cheery personality. Keep your responses as brief as possible but make every attempt to keep the caller on the phone without being rude. Don't ask more than 1 question at a time. Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous. Speak out all prices to include the currency. Please help them decide between the airpods, airpods pro and airpods max by asking questions like 'Do you prefer headphones that go in your ear or over the ear?'. If they are trying to choose between the airpods and airpods pro try asking them if they need noise canceling. Once you know which model they would like ask them how many they would like to purchase and try to get them to place an order. If they ask to end the conversation thank them and wish them a good day.";
+
+  var languageContext =
+    "You speak " + hackathonRoute.userContext?.languageContext ??
+    "You speak English";
+
+  var agentIntent =
+    " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
+
+  var functionContext =
+    hackathonRoute.userContext?.functionContext ?? initialTools;
+
   callerId = req.body.From;
   twilioNumber = req.body.To;
   const msg = req.body.Body;
 
   let message = `User: ${msg}`;
   console.log(message.green);
-  io.emit("logs", message);
+  // io.emit("logs", message);
+  let event = {
+    log: message,
+  };
+  sendEventsToAllClients(event);
 
   const conversationSid =
     await conversationsHelper.checkActiveConversationExists(
@@ -275,7 +340,12 @@ app.post("/incomingMessage", async (req, res) => {
   gptMessagingService.on("functionCall", async (functionName) => {
     let message = `Called ${functionName} function - tracked in Segment`;
     console.log(message.red);
-    io.emit("logs", message, "red");
+    // io.emit("logs", message, "red");
+    let event = {
+      log: message,
+      color: "red",
+    };
+    sendEventsToAllClients(event);
   });
 
   gptMessagingService.on(
@@ -285,14 +355,24 @@ app.post("/incomingMessage", async (req, res) => {
         functionArgs
       )} Response: ${functionResponse}`;
       console.log(message.red);
-      io.emit("logs", message, "red");
+      // io.emit("logs", message, "red");
+      let event = {
+        log: message,
+        color: "red",
+      };
+      sendEventsToAllClients(event);
     }
   );
 
   gptMessagingService.on("gptreply", async (gptReply, icount) => {
     let message = `GPT Agent: ${gptReply.completeResponse}`;
     console.log(message.green);
-    io.emit("logs", message, "green");
+    // io.emit("logs", message, "green");
+    let event = {
+      log: message,
+      color: "green",
+    };
+    sendEventsToAllClients(event);
     interactionCount += 1;
     conversationsHelper.sendMessage(conversationSid, gptReply.completeResponse);
     res.status(200);
@@ -312,8 +392,6 @@ app.post("/speak-to-agent", (req, res) => {
   res.end();
 });
 
-app.listen(PORT);
+app.listen(PORT); // if we don't have app.listen it fails
+// httpServer.listen(5001);
 console.log(`Server running on port ${PORT}`);
-
-ioServer.listen(5001);
-console.log(`Io Server running on port 5001`);

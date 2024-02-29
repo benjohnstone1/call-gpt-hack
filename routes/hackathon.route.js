@@ -52,7 +52,7 @@ router.post("/set-user-context/", async (req, res, next) => {
     let functionContext = req.body.functionContext;
 
     const tools = createTools(functionContext);
-    console.log(tools[0]);
+    console.log(systemContext);
 
     userContext = {
       systemContext: systemContext,
