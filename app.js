@@ -2,6 +2,7 @@ const config = require("./config/config.js");
 const workflowSid = config.workflowSid;
 const server = config.server;
 const segmentKey = config.segmentKey;
+const defaultVoice = config.defaultVoice;
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -123,9 +124,9 @@ app.ws("/connection", (ws, req) => {
     hackathonRoute.userContext?.systemContext ??
     "You are an outbound sales representative selling Apple Airpods. You have a youthful and cheery personality. Keep your responses as brief as possible but make every attempt to keep the caller on the phone without being rude. Don't ask more than 1 question at a time. Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous. Speak out all prices to include the currency. Please help them decide between the airpods, airpods pro and airpods max by asking questions like 'Do you prefer headphones that go in your ear or over the ear?'. If they are trying to choose between the airpods and airpods pro try asking them if they need noise canceling. Once you know which model they would like ask them how many they would like to purchase and try to get them to place an order. If they ask to end the conversation thank them and wish them a good day.";
 
-  var languageContext =
-    "You speak " + hackathonRoute.userContext?.languageContext ??
-    "You speak English";
+  // var languageContext =
+  //   "You speak " + hackathonRoute.userContext?.languageContext ??
+  //   "You speak English";
 
   var agentIntent =
     " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
@@ -140,7 +141,8 @@ app.ws("/connection", (ws, req) => {
   let streamSid;
 
   const gptService = new GptService(
-    systemContext + languageContext + agentIntent,
+    // systemContext + languageContext + agentIntent,
+    systemContext + agentIntent,
     initialGreeting,
     functionContext,
     callSid,
@@ -149,13 +151,16 @@ app.ws("/connection", (ws, req) => {
 
   const streamService = new StreamService(ws);
 
+  var initialLanguage = hackathonRoute.userContext?.initialLanguage ?? "en";
   var checkNewInstance = true;
   if (checkNewInstance === true) {
-    locale = "en"; // e.g. en, fr, it, es
+    console.log("initial language is ", initialLanguage);
+    locale = initialLanguage; // e.g. en, fr, it, es
     transcriptionService = new TranscriptionService(locale);
   }
 
-  const ttsService = new TextToSpeechService({});
+  var voiceId = hackathonRoute.userContext?.initialVoice ?? config.defaultVoice;
+  const ttsService = new TextToSpeechService({ voiceId: voiceId });
 
   let marks = [];
   let interactionCount = 0;

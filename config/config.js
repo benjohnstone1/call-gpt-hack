@@ -13,6 +13,7 @@ const server = process.env.SERVER;
 const openAIKey = process.env.OPENAI_API_KEY;
 const segmentKey = process.env.SEGMENT_API_KEY;
 const workspaceSid = process.env.WORKSPACE_SID;
+const defaultVoice = process.env.VOICE_ID;
 
 (express = require("express")), (router = express.Router());
 
@@ -30,4 +31,5 @@ module.exports = {
   openAIKey: openAIKey,
   segmentKey: segmentKey,
   workspaceSid: workspaceSid,
+  defaultVoice: defaultVoice,
 };

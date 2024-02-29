@@ -50,14 +50,18 @@ router.post("/set-user-context/", async (req, res, next) => {
     let systemContext = req.body.context;
     let languageContext = req.body.languageContext;
     let functionContext = req.body.functionContext;
+    let initialLanguage = req.body.initialLanguage;
+    let initialVoice = req.body.initialVoice;
 
     const tools = createTools(functionContext);
-    console.log(systemContext);
+    console.log("initial voice is", initialVoice);
 
     userContext = {
       systemContext: systemContext,
       greeting: greeting,
       languageContext: languageContext,
+      initialLanguage: initialLanguage,
+      initialVoice: initialVoice,
       functionContext: tools,
     };
     exports.userContext = userContext;

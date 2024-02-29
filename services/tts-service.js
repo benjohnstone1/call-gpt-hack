@@ -5,7 +5,7 @@ class TextToSpeechService extends EventEmitter {
   constructor(config) {
     super();
     this.config = config;
-    this.config.voiceId ||= process.env.VOICE_ID;
+    this.config.voiceId = config.voiceId;
     this.nextExpectedIndex = 0;
     this.speechBuffer = {};
   }
