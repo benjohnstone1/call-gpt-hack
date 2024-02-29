@@ -16,7 +16,7 @@ const tools = [
         properties: {
           language: {
             type: "string",
-            enum: ["english", "french", "italian", "spanish"],
+            enum: ["english", "french", "italian", "spanish", "german"],
             description:
               "The types of languages the user could want to converse in",
           },
