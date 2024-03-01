@@ -94,8 +94,8 @@ async function transferSMSToAgent(callerId) {
 
 function summarizeCall(callSid, twilioSyncServiceSid, client, mapSid) {
   const listUniqueName = "Transcript-" + callSid;
-  console.log("Using Sync service with SID", twilioSyncServiceSid);
-  console.log("List Unique ID", listUniqueName);
+  // console.log("Using Sync service with SID", twilioSyncServiceSid);
+  // console.log("List Unique ID", listUniqueName);
 
   try {
     // Check if list exists and update
