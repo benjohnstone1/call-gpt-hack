@@ -13,7 +13,7 @@ function writeTranscriptToTwilio(transcript, speaker, callSid) {
   }
 
   const listUniqueName = "Transcript-" + callSid;
-  let listSid = undefined;
+  let listSid = undefined; //see if needing updated
 
   try {
     // Check if list exists and update

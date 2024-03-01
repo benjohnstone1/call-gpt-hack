@@ -94,8 +94,8 @@ async function transferSMSToAgent(callerId) {
 
 function summarizeCall(callSid, twilioSyncServiceSid, client, mapSid) {
   const listUniqueName = "Transcript-" + callSid;
-  //   console.log("Using Sync service with SID", twilioSyncServiceSid);
-  //   console.log("List Unique ID", listUniqueName);
+  console.log("Using Sync service with SID", twilioSyncServiceSid);
+  console.log("List Unique ID", listUniqueName);
 
   try {
     // Check if list exists and update
@@ -127,10 +127,10 @@ function summarizeCall(callSid, twilioSyncServiceSid, client, mapSid) {
 
         const summary = gptResponse.choices[0].message.content;
         console.log("Summary:", summary);
-        saveSummary(summary, callSID, twilioSyncServiceSid, mapSid, client);
+        saveSummary(summary, callSid, twilioSyncServiceSid, mapSid, client);
       })
-      .catch(async (error) => {
-        console.log("Error getting list item: ");
+      .catch(async (e) => {
+        console.log(e);
       });
   } catch (err) {
     console.log("Oh shoot. Something went really wrong, check logs", err);
