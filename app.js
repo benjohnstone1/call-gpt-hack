@@ -129,7 +129,7 @@ app.ws("/connection", (ws, req) => {
   //   "You speak English";
 
   var agentIntent =
-    " If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
+    "If they ask to speak to an Agent, respond with 'Please wait while I direct your call to an available agent.";
 
   var functionContext =
     hackathonRoute.userContext?.functionContext ?? initialTools;

@@ -29,9 +29,9 @@ const createTools = (functionContext) => {
           returns: {
             type: "object",
             properties: {
-              [functionContext[i].returnObjProperties[j].name]: {
-                type: functionContext[i].returnObjProperties[j].type,
-                description: functionContext[i].returnObjProperties[j].desc,
+              [functionContext[i].returnObjProperties[k].name]: {
+                type: functionContext[i].returnObjProperties[k].type,
+                description: functionContext[i].returnObjProperties[k].desc,
               },
             },
           },
@@ -40,6 +40,7 @@ const createTools = (functionContext) => {
     }
     tools.push(toolsObj);
   }
+  console.dir(tools[0], { depth: null }); //print full object
   return tools;
 };
 
